@@ -66,6 +66,7 @@ enum Command {
     Play,
     Pause,
     Toggle,
+    WorkerFailed(usize),
     Quit,
 }
 
@@ -83,9 +84,10 @@ impl Player {
         E: Fn(PlayerEvent) + Send + Clone + 'static,
     {
         let (cmd_tx, cmd_rx) = unbounded();
+        let engine_cmd_tx = cmd_tx.clone();
         thread::Builder::new()
             .name("audio-engine".into())
-            .spawn(move || engine(config, cmd_rx, emit))
+            .spawn(move || engine(config, cmd_rx, engine_cmd_tx, emit))
             .expect("spawn audio engine");
         Self { cmd_tx }
     }
@@ -108,7 +110,7 @@ impl Player {
 /// the active one?". When it returns false the session must wind down.
 type ShouldRun = Arc<dyn Fn() -> bool + Send + Sync>;
 
-fn engine<E>(config: Config, cmd_rx: Receiver<Command>, emit: E)
+fn engine<E>(config: Config, cmd_rx: Receiver<Command>, cmd_tx: Sender<Command>, emit: E)
 where
     E: Fn(PlayerEvent) + Send + Clone + 'static,
 {
@@ -134,10 +136,15 @@ where
         let cfg = config.clone();
         let handle = handle.clone();
         let emit = emit.clone();
+        let cmd_tx = cmd_tx.clone();
         emit(PlayerEvent::Status(PlaybackStatus::Buffering));
         thread::Builder::new()
             .name("audio-worker".into())
-            .spawn(move || worker(cfg, handle, should_run, emit))
+            .spawn(move || {
+                if !worker(cfg, handle, should_run, emit) {
+                    let _ = cmd_tx.send(Command::WorkerFailed(my_gen));
+                }
+            })
             .expect("spawn audio worker");
     };
 
@@ -172,6 +179,12 @@ where
                 stop(&generation);
                 break;
             }
+            Command::WorkerFailed(worker_gen) => {
+                if playing && generation.load(Ordering::SeqCst) == worker_gen {
+                    playing = false;
+                    emit(PlayerEvent::Title(None));
+                }
+            }
             Command::Play | Command::Pause => {} // already in the requested state
         }
     }
@@ -179,7 +192,7 @@ where
 
 /// Per-session worker: owns a [`Sink`] and reconnects with exponential backoff
 /// until its generation is retired.
-fn worker<E>(config: Config, handle: rodio::OutputStreamHandle, should_run: ShouldRun, emit: E)
+fn worker<E>(config: Config, handle: rodio::OutputStreamHandle, should_run: ShouldRun, emit: E) -> bool
 where
     E: Fn(PlayerEvent) + Send + Clone + 'static,
 {
@@ -188,7 +201,7 @@ where
         Err(err) => {
             log::error!("cannot create audio sink: {err}");
             emit(PlayerEvent::Status(PlaybackStatus::Error));
-            return;
+            return false;
         }
     };
     sink.set_volume(config.volume.clamp(0.0, 1.0));
@@ -217,6 +230,7 @@ where
         }
     }
     // Dropping `sink` here stops any queued audio for this session.
+    true
 }
 
 /// Connect once and decode until the stream ends, errors, or the session is
