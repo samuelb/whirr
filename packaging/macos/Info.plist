@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>Gibbon</string>
+    <key>CFBundleDisplayName</key>
+    <string>Gibbon</string>
+    <key>CFBundleIdentifier</key>
+    <string>io.github.samuelb.gibbon</string>
+    <key>CFBundleVersion</key>
+    <string>0.1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleExecutable</key>
+    <string>gibbon</string>
+    <key>CFBundleIconFile</key>
+    <string>gibbon.icns</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+    <!-- Run as a menu-bar/agent app with no Dock icon. -->
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>Unofficial client. Not affiliated with example.com. https://example.com/</string>
+</dict>
+</plist>

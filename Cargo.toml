@@ -1,0 +1,107 @@
+[package]
+name = "gibbon"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "A tiny system-tray player for the Example Radio internet stream (example.com). Unofficial, not affiliated with example.com."
+authors = ["Gibbon contributors"]
+license = "MIT"
+repository = "https://github.com/samuelb/gibbon"
+homepage = "https://github.com/samuelb/gibbon"
+readme = "README.md"
+keywords = ["radio", "tray", "mpris", "streaming", "audio"]
+categories = ["multimedia::audio"]
+exclude = ["/.github", "/packaging", "/assets/gibbon.iconset"]
+
+[[bin]]
+name = "gibbon"
+path = "src/main.rs"
+
+[dependencies]
+# Audio: pure-Rust HTTP streaming + MP3 decode + playback (no gstreamer dependency).
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
+rodio = { version = "0.20", default-features = false }
+symphonia = { version = "0.5", default-features = false, features = ["mp3", "aac"] }
+
+# Tray icon + event loop (cross-platform: Windows, macOS, Linux).
+tray-icon = "0.19"
+tao = "0.30"
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+# System media controls: MPRIS (Linux) / SMTC (Windows) / MediaRemote (macOS) + media keys.
+# `use_zbus` selects the pure-Rust D-Bus backend on Linux so no libdbus build dep is needed.
+souvlaki = { version = "0.7", default-features = false, features = ["use_zbus"] }
+raw-window-handle = "0.6"
+
+# Start-on-login registration across platforms.
+auto-launch = "0.5"
+
+# Config, logging, utilities.
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+directories = "5"
+anyhow = "1"
+thiserror = "1"
+log = "0.4"
+env_logger = "0.11"
+crossbeam-channel = "0.5"
+
+[target.'cfg(target_os = "windows")'.build-dependencies]
+winresource = "0.1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+# ---------------------------------------------------------------------------
+# Packaging metadata
+# ---------------------------------------------------------------------------
+
+# cargo-deb (Debian/Ubuntu .deb)
+[package.metadata.deb]
+maintainer = "Gibbon contributors"
+copyright = "2026, Gibbon contributors"
+license-file = ["LICENSE-MIT", "0"]
+extended-description = """\
+An unofficial, lightweight system-tray client for the Example Radio internet \
+stream (https://example.com/). One-click play/pause, now-playing tooltip, \
+MPRIS and media-key integration, and automatic reconnect. \
+Not affiliated with example.com."""
+section = "sound"
+priority = "optional"
+depends = "$auto, libgtk-3-0, libayatana-appindicator3-1, libasound2"
+assets = [
+    ["target/release/gibbon", "usr/bin/", "755"],
+    ["assets/icons/gibbon.png", "usr/share/icons/hicolor/256x256/apps/io.github.samuelb.gibbon.png", "644"],
+    ["assets/io.github.samuelb.gibbon.desktop", "usr/share/applications/", "644"],
+    ["README.md", "usr/share/doc/gibbon/README.md", "644"],
+]
+
+# cargo-generate-rpm (Fedora/RHEL/openSUSE .rpm)
+[package.metadata.generate-rpm]
+summary = "Unofficial system-tray player for the Example Radio stream (example.com)"
+license = "MIT"
+assets = [
+    { source = "target/release/gibbon", dest = "/usr/bin/gibbon", mode = "755" },
+    { source = "assets/icons/gibbon.png", dest = "/usr/share/icons/hicolor/256x256/apps/io.github.samuelb.gibbon.png", mode = "644" },
+    { source = "assets/io.github.samuelb.gibbon.desktop", dest = "/usr/share/applications/io.github.samuelb.gibbon.desktop", mode = "644" },
+    { source = "README.md", dest = "/usr/share/doc/gibbon/README.md", mode = "644" },
+]
+[package.metadata.generate-rpm.requires]
+gtk3 = "*"
+libappindicator-gtk3 = "*"
+alsa-lib = "*"
+
+# cargo-bundle (macOS .app / .dmg convenience — CI uses the manual bundler in packaging/macos)
+[package.metadata.bundle]
+name = "Gibbon"
+identifier = "io.github.samuelb.gibbon"
+icon = ["assets/icons/gibbon.icns"]
+category = "Music"
+short_description = "System-tray player for the Example Radio stream."
+long_description = """\
+An unofficial, lightweight system-tray client for the Example Radio internet \
+stream (https://example.com/). Not affiliated with example.com."""

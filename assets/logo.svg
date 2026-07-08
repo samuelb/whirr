@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="gibbon logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b2f3a"/>
+      <stop offset="1" stop-color="#12141b"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+  <!-- radio waves -->
+  <g fill="none" stroke="#ffcf33" stroke-width="20" stroke-linecap="round" opacity="0.9">
+    <path d="M330 196a86 86 0 0 1 0 120"/>
+    <path d="M372 160a150 150 0 0 1 0 192"/>
+  </g>
+  <!-- play triangle inside a soft disc -->
+  <circle cx="212" cy="256" r="120" fill="#ffcf33"/>
+  <path d="M186 200 L186 312 L280 256 Z" fill="#12141b"/>
+</svg>

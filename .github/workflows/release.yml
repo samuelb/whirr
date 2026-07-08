@@ -1,0 +1,132 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ---------------------------------------------------------------- Linux
+  linux:
+    name: Linux ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-3-dev libayatana-appindicator3-dev libasound2-dev pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release --locked
+
+      - name: Install packaging tools
+        run: cargo install cargo-deb cargo-generate-rpm --locked
+
+      - name: Build .deb and .rpm
+        run: |
+          cargo deb --no-build
+          cargo generate-rpm
+
+      - name: Stage artifacts
+        run: |
+          mkdir -p dist
+          cp target/debian/*.deb "dist/"
+          cp target/generate-rpm/*.rpm "dist/"
+          tar -C target/release -czf "dist/gibbon-linux-${{ matrix.arch }}.tar.gz" gibbon
+          ( cd dist && sha256sum * > "SHA256SUMS-linux-${{ matrix.arch }}.txt" )
+
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/*
+          fail_on_unmatched_files: true
+
+  # ---------------------------------------------------------------- macOS (universal)
+  macos:
+    name: macOS (universal)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build (Apple Silicon + Intel)
+        run: |
+          cargo build --release --locked --target aarch64-apple-darwin
+          cargo build --release --locked --target x86_64-apple-darwin
+
+      - name: Create universal binary and app bundle
+        run: |
+          mkdir -p dist
+          lipo -create -output dist/gibbon-universal \
+            target/aarch64-apple-darwin/release/gibbon \
+            target/x86_64-apple-darwin/release/gibbon
+          bash packaging/macos/bundle.sh dist/gibbon-universal dist
+          ( cd dist && shasum -a 256 gibbon-macos.dmg > SHA256SUMS-macos.txt )
+
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/gibbon-macos.dmg
+            dist/SHA256SUMS-macos.txt
+          fail_on_unmatched_files: true
+
+  # ---------------------------------------------------------------- Windows
+  windows:
+    name: Windows (x64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release --locked
+
+      - name: Install NSIS
+        run: choco install nsis -y --no-progress
+
+      - name: Build installer (NSIS)
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v',''
+          if (-not $version) { $version = "0.1.0" }
+          # The script's File/icon paths are relative to packaging\windows.
+          Push-Location packaging\windows
+          makensis "/DVERSION=$version" installer.nsi
+          Pop-Location
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Move-Item packaging\windows\gibbon-setup-*.exe dist\
+          Copy-Item target\release\gibbon.exe dist\gibbon-windows-x64.exe
+          Get-FileHash dist\* -Algorithm SHA256 | Out-File dist\SHA256SUMS-windows.txt
+
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/*
+          fail_on_unmatched_files: true

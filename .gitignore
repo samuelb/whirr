@@ -1,0 +1,18 @@
+# Rust build output
+/target
+**/*.rs.bk
+
+# Packaging build artifacts
+/dist
+*.deb
+*.rpm
+*.dmg
+*.pkg
+*.msi
+/packaging/**/build
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
