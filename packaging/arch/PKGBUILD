@@ -2,7 +2,7 @@
 # Unofficial system-tray client for the Example Radio stream (https://example.com/).
 # Not affiliated with example.com.
 pkgname=gibbon
-pkgver=0.1.1
+pkgver=0.2.0
 pkgrel=1
 pkgdesc="Unofficial system-tray player for the Example Radio internet stream (example.com)"
 arch=('x86_64' 'aarch64')

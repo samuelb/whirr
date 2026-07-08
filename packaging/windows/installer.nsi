@@ -4,7 +4,7 @@
 ; Not affiliated with example.com (https://example.com/).
 
 !ifndef VERSION
-  !define VERSION "0.1.1"
+  !define VERSION "0.2.0"
 !endif
 !ifndef SRCEXE
   !define SRCEXE "..\..\target\release\gibbon.exe"

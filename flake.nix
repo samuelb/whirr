@@ -33,7 +33,7 @@
 
         gibbon = pkgs.rustPlatform.buildRustPackage {
           pname = "gibbon";
-          version = "0.1.1";
+          version = "0.2.0";
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
 

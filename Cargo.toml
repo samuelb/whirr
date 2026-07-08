@@ -1,6 +1,6 @@
 [package]
 name = "gibbon"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.89"
 description = "A tiny system-tray player for the Example Radio internet stream (example.com). Unofficial, not affiliated with example.com."
