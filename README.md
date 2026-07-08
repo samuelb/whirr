@@ -62,8 +62,8 @@ sudo dnf install ./gibbon-*.x86_64.rpm     # or .aarch64.rpm
 ### Arch Linux
 
 ```bash
-# from the packaged PKGBUILD
-makepkg -si -p packaging/arch/PKGBUILD
+# download PKGBUILD from the latest release assets, then:
+makepkg -si
 ```
 
 (An AUR package `gibbon` can be published from the same `PKGBUILD`.)

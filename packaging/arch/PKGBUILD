@@ -10,8 +10,9 @@ url="https://github.com/samuelb/gibbon"
 license=('MIT')
 depends=('gtk3' 'libayatana-appindicator' 'alsa-lib')
 makedepends=('rust' 'cargo')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/samuelb/gibbon/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/samuelb/gibbon/releases/download/v$pkgver/$pkgname-$pkgver.tar.gz")
+# Release automation replaces this placeholder in the published PKGBUILD.
+sha256sums=('REPLACE_WITH_RELEASE_SHA256')
 
 prepare() {
     cd "$pkgname-$pkgver"

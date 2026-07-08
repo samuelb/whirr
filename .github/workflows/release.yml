@@ -143,10 +143,17 @@ jobs:
     needs: [linux, macos, windows]
     if: startsWith(github.ref, 'refs/tags/')
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+
+      - name: Stage source archive and Arch PKGBUILD
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          sh scripts/stage-arch-release.sh "$version" dist
 
       - uses: softprops/action-gh-release@v2
         with:
