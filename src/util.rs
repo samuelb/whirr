@@ -35,3 +35,23 @@ pub fn open_url(url: &str) {
         log::warn!("could not open {url}: {err}");
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn splits_artist_and_title() {
+        assert_eq!(
+            split_artist_title(" Artist - Track "),
+            (Some("Artist"), "Track")
+        );
+    }
+
+    #[test]
+    fn treats_missing_or_empty_parts_as_title_only() {
+        assert_eq!(split_artist_title("Track"), (None, "Track"));
+        assert_eq!(split_artist_title("Artist - "), (None, "Artist -"));
+        assert_eq!(split_artist_title(" - Track"), (None, "- Track"));
+    }
+}

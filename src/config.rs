@@ -129,3 +129,47 @@ impl Config {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalizes_invalid_volume() {
+        let cfg = Config {
+            volume: f32::NAN,
+            ..Config::default()
+        }
+        .normalized();
+
+        assert_eq!(cfg.volume, Config::default().volume);
+    }
+
+    #[test]
+    fn clamps_out_of_range_volume() {
+        let high = Config {
+            volume: 1.5,
+            ..Config::default()
+        }
+        .normalized();
+        let low = Config {
+            volume: -0.5,
+            ..Config::default()
+        }
+        .normalized();
+
+        assert_eq!(high.volume, 1.0);
+        assert_eq!(low.volume, 0.0);
+    }
+
+    #[test]
+    fn normalizes_invalid_stream_url() {
+        let cfg = Config {
+            stream_url: "file:///tmp/audio.mp3".to_string(),
+            ..Config::default()
+        }
+        .normalized();
+
+        assert_eq!(cfg.stream_url, STREAM_URL);
+    }
+}

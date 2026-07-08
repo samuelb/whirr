@@ -59,7 +59,11 @@ impl<R: Read> Read for IcyReader<R> {
             return self.inner.read(buf);
         }
         if self.remaining == 0 {
-            self.read_metadata_block()?;
+            match self.read_metadata_block() {
+                Ok(()) => {}
+                Err(err) if err.kind() == io::ErrorKind::UnexpectedEof => return Ok(0),
+                Err(err) => return Err(err),
+            }
             self.remaining = self.metaint;
         }
         let want = buf.len().min(self.remaining);
@@ -120,5 +124,35 @@ mod tests {
         reader.read_to_end(&mut out).unwrap();
         assert_eq!(out, b"AUDIOOO");
         assert_eq!(seen.lock().unwrap().as_deref(), Some("Hi"));
+    }
+
+    #[test]
+    fn strips_metadata_across_small_reads() {
+        let mut raw = Vec::new();
+        raw.extend_from_slice(b"AB");
+        let payload = b"StreamTitle='Tiny';";
+        let blocks = payload.len().div_ceil(16);
+        let mut meta = payload.to_vec();
+        meta.resize(blocks * 16, 0);
+        raw.push(blocks as u8);
+        raw.extend_from_slice(&meta);
+        raw.extend_from_slice(b"CD");
+
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(None));
+        let seen2 = seen.clone();
+        let mut reader = IcyReader::new(
+            io::Cursor::new(raw),
+            2,
+            Box::new(move |t| *seen2.lock().unwrap() = t),
+        );
+
+        let mut out = Vec::new();
+        let mut buf = [0u8; 1];
+        while reader.read(&mut buf).unwrap() != 0 {
+            out.push(buf[0]);
+        }
+
+        assert_eq!(out, b"ABCD");
+        assert_eq!(seen.lock().unwrap().as_deref(), Some("Tiny"));
     }
 }
