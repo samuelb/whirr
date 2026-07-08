@@ -25,7 +25,7 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install build dependencies
         run: |
@@ -66,7 +66,7 @@ jobs:
     name: macOS (universal)
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -100,7 +100,7 @@ jobs:
     name: Windows (x64)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -109,13 +109,18 @@ jobs:
         run: cargo build --release --locked
 
       - name: Install NSIS
-        run: choco install nsis -y --no-progress
+        shell: pwsh
+        run: |
+          choco install nsis -y --no-progress
+          # Chocolatey doesn't shim makensis onto PATH, so add its install dir.
+          "${env:ProgramFiles(x86)}\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
 
       - name: Build installer (NSIS)
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}" -replace '^v',''
-          if (-not $version) { $version = "0.1.0" }
+          # Fall back to a valid version for non-tag runs (e.g. workflow_dispatch on a branch).
+          if ($version -notmatch '^\d+\.\d+\.\d+') { $version = "0.1.0" }
           # The script's File/icon paths are relative to packaging\windows.
           Push-Location packaging\windows
           makensis "/DVERSION=$version" installer.nsi
