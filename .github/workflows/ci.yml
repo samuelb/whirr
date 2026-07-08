@@ -35,6 +35,9 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Version metadata
+        run: sh scripts/check-version-metadata.sh
+
       - name: Formatting
         run: cargo fmt --all -- --check
 

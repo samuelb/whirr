@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+set -eu
+
+version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
+
+check() {
+    name="$1"
+    value="$2"
+    if [ "$value" != "$version" ]; then
+        echo "$name version is $value, expected $version" >&2
+        exit 1
+    fi
+}
+
+check "flake.nix" "$(sed -n 's/^[[:space:]]*version = "\(.*\)";/\1/p' flake.nix | head -n 1)"
+check "PKGBUILD" "$(sed -n 's/^pkgver=//p' packaging/arch/PKGBUILD | head -n 1)"
+check "NSIS" "$(sed -n 's/^[[:space:]]*!define VERSION "\(.*\)"/\1/p' packaging/windows/installer.nsi | head -n 1)"
+check "Info.plist CFBundleVersion" "$(
+    awk '
+        /<key>CFBundleVersion<\/key>/ { getline; gsub(/^[[:space:]]*<string>|<\/string>[[:space:]]*$/, ""); print; exit }
+    ' packaging/macos/Info.plist
+)"
+check "Info.plist CFBundleShortVersionString" "$(
+    awk '
+        /<key>CFBundleShortVersionString<\/key>/ { getline; gsub(/^[[:space:]]*<string>|<\/string>[[:space:]]*$/, ""); print; exit }
+    ' packaging/macos/Info.plist
+)"
+
+echo "version metadata matches $version"
