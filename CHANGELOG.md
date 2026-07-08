@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-08
+
 ## [0.1.0] - 2026-07-08
 
 ### Added
@@ -23,5 +25,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - GitHub Actions CI (fmt/clippy/test on Linux, macOS, Windows) and multi-platform
   release pipeline.
 
-[Unreleased]: https://github.com/samuelb/gibbon/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/samuelb/gibbon/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/samuelb/gibbon/releases/tag/v0.1.1
 [0.1.0]: https://github.com/samuelb/gibbon/releases/tag/v0.1.0
