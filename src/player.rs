@@ -275,7 +275,9 @@ where
         .context("spawning network thread")?;
 
     let result = decode_loop(rx, sink, should_run, emit);
-    let _ = net.join();
+    if should_run() {
+        let _ = net.join();
+    }
     result
 }
 
@@ -289,7 +291,7 @@ fn decode_loop<E>(
 where
     E: Fn(PlayerEvent) + Send + Clone + 'static,
 {
-    let source = Box::new(ChannelSource::new(rx));
+    let source = Box::new(ChannelSource::new(rx, should_run.clone()));
     let mss = MediaSourceStream::new(source, Default::default());
 
     let mut hint = Hint::new();
@@ -376,14 +378,16 @@ fn sleep_interruptible(total: Duration, should_run: &ShouldRun) {
 /// stream is not seekable (it is live radio).
 struct ChannelSource {
     rx: Receiver<Vec<u8>>,
+    should_run: ShouldRun,
     current: Vec<u8>,
     pos: usize,
 }
 
 impl ChannelSource {
-    fn new(rx: Receiver<Vec<u8>>) -> Self {
+    fn new(rx: Receiver<Vec<u8>>, should_run: ShouldRun) -> Self {
         Self {
             rx,
+            should_run,
             current: Vec::new(),
             pos: 0,
         }
@@ -393,15 +397,22 @@ impl ChannelSource {
 impl Read for ChannelSource {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if self.pos >= self.current.len() {
-            match self.rx.recv() {
-                Ok(chunk) => {
-                    self.current = chunk;
-                    self.pos = 0;
-                    if self.current.is_empty() {
-                        return Ok(0);
+            while (self.should_run)() {
+                match self.rx.recv_timeout(Duration::from_millis(100)) {
+                    Ok(chunk) => {
+                        self.current = chunk;
+                        self.pos = 0;
+                        if self.current.is_empty() {
+                            return Ok(0);
+                        }
+                        break;
                     }
+                    Err(crossbeam_channel::RecvTimeoutError::Timeout) => {}
+                    Err(crossbeam_channel::RecvTimeoutError::Disconnected) => return Ok(0),
                 }
-                Err(_) => return Ok(0), // channel closed => EOF
+            }
+            if !(self.should_run)() {
+                return Ok(0);
             }
         }
         let n = (self.current.len() - self.pos).min(buf.len());
