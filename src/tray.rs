@@ -12,6 +12,7 @@ pub const ID_PLAY_PAUSE: &str = "play_pause";
 pub const ID_NOW_PLAYING: &str = "now_playing";
 pub const ID_OPEN_SITE: &str = "open_site";
 pub const ID_AUTOSTART: &str = "autostart";
+pub const ID_NOTIFICATIONS: &str = "notifications";
 pub const ID_ABOUT: &str = "about";
 pub const ID_QUIT: &str = "quit";
 
@@ -21,11 +22,12 @@ pub struct Tray {
     pub play_pause: MenuItem,
     pub now_playing: MenuItem,
     pub autostart: CheckMenuItem,
+    pub notifications: CheckMenuItem,
 }
 
 /// Build the tray icon and menu. Must be called after the event loop has
 /// started (required by tray-icon on macOS and Linux/GTK).
-pub fn build(autostart_enabled: bool) -> Result<Tray> {
+pub fn build(autostart_enabled: bool, notifications_enabled: bool) -> Result<Tray> {
     let menu = Menu::new();
 
     let now_playing = MenuItem::with_id(ID_NOW_PLAYING, "Not playing", false, None);
@@ -43,6 +45,13 @@ pub fn build(autostart_enabled: bool) -> Result<Tray> {
         autostart_enabled,
         None,
     );
+    let notifications = CheckMenuItem::with_id(
+        ID_NOTIFICATIONS,
+        "Notify on song change",
+        true,
+        notifications_enabled,
+        None,
+    );
     let about = MenuItem::with_id(
         ID_ABOUT,
         format!("About (unofficial {STATION_NAME} client)"),
@@ -57,6 +66,8 @@ pub fn build(autostart_enabled: bool) -> Result<Tray> {
     menu.append(&PredefinedMenuItem::separator())?;
     menu.append(&open_site).context("append open_site")?;
     menu.append(&autostart).context("append autostart")?;
+    menu.append(&notifications)
+        .context("append notifications")?;
     menu.append(&PredefinedMenuItem::separator())?;
     menu.append(&about).context("append about")?;
     menu.append(&quit).context("append quit")?;
@@ -74,5 +85,6 @@ pub fn build(autostart_enabled: bool) -> Result<Tray> {
         play_pause,
         now_playing,
         autostart,
+        notifications,
     })
 }

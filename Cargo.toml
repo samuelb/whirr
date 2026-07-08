@@ -2,7 +2,7 @@
 name = "gibbon"
 version = "0.1.1"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.89"
 description = "A tiny system-tray player for the Example Radio internet stream (example.com). Unofficial, not affiliated with example.com."
 authors = ["Gibbon contributors"]
 license = "MIT"
@@ -35,6 +35,12 @@ raw-window-handle = "0.6"
 
 # Start-on-login registration across platforms.
 auto-launch = "0.5"
+
+# Desktop "now playing" notifications on track change.
+# The `z` feature (the crate's default) selects the pure-Rust zbus D-Bus backend
+# on Linux — matching souvlaki above, so no libdbus build dep is pulled in.
+# macOS (mac-notification-sys) and Windows (WinRT toast) backends are automatic.
+notify-rust = { version = "4", default-features = false, features = ["z"] }
 
 # Config, logging, utilities.
 serde = { version = "1", features = ["derive"] }

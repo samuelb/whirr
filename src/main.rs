@@ -16,6 +16,7 @@ mod config;
 mod controls;
 mod icons;
 mod icy;
+mod notifications;
 mod player;
 mod tray;
 mod util;

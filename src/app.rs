@@ -11,7 +11,7 @@ use tray_icon::{MouseButton, MouseButtonState, TrayIconEvent};
 
 use crate::config::{Config, APP_DISPLAY_NAME, REPO_URL, STATION_NAME, STATION_URL};
 use crate::player::{PlaybackStatus, Player, PlayerEvent};
-use crate::{autostart, controls, icons, tray, util};
+use crate::{autostart, controls, icons, notifications, tray, util};
 
 /// Events funnelled into the main event loop from various sources.
 enum UserEvent {
@@ -73,6 +73,7 @@ pub fn run(config: Config) -> Result<()> {
         controls: None,
         status: PlaybackStatus::Paused,
         title: None,
+        last_song: None,
     };
 
     event_loop.run(move |event, _target, control_flow| {
@@ -95,12 +96,16 @@ struct App {
     controls: Option<MediaControls>,
     status: PlaybackStatus,
     title: Option<String>,
+    /// The last non-empty song title we announced (or saw while notifications
+    /// were off). Used to fire a notification only on a genuine track change,
+    /// not on reconnects or pause/resume of the same song.
+    last_song: Option<String>,
 }
 
 impl App {
     /// Build the tray and media controls once the platform GUI context is live.
     fn on_init(&mut self) {
-        match tray::build(autostart::is_enabled()) {
+        match tray::build(autostart::is_enabled(), self.config.notifications) {
             Ok(t) => self.tray = Some(t),
             Err(err) => log::error!("failed to create tray icon: {err:#}"),
         }
@@ -138,6 +143,8 @@ impl App {
             util::open_url(REPO_URL);
         } else if id == tray::ID_AUTOSTART {
             self.toggle_autostart();
+        } else if id == tray::ID_NOTIFICATIONS {
+            self.toggle_notifications();
         } else if id == tray::ID_QUIT {
             self.quit(control_flow);
         }
@@ -181,6 +188,16 @@ impl App {
         }
     }
 
+    fn toggle_notifications(&mut self) {
+        self.config.notifications = !self.config.notifications;
+        if let Err(err) = self.config.save() {
+            log::warn!("could not save config: {err:#}");
+        }
+        if let Some(tray) = &self.tray {
+            tray.notifications.set_checked(self.config.notifications);
+        }
+    }
+
     fn quit(&mut self, control_flow: &mut ControlFlow) {
         self.player.quit();
         self.controls = None;
@@ -213,6 +230,18 @@ impl App {
     }
 
     fn apply_title(&mut self, title: Option<String>) {
+        // Announce genuine song changes with a desktop notification (best-effort).
+        // A change to an empty/None title (e.g. on pause) is not a new song and
+        // must not reset `last_song`, so resuming the same track stays quiet.
+        if let Some(song) = &title {
+            if self.last_song.as_deref() != Some(song.as_str()) {
+                if self.config.notifications {
+                    notifications::song_changed(song);
+                }
+                self.last_song = Some(song.clone());
+            }
+        }
+
         self.title = title;
 
         if let Some(tray) = &self.tray {

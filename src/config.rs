@@ -22,8 +22,8 @@ pub const REPO_URL: &str = "https://github.com/samuelb/gibbon";
 /// Shown to the OS for media controls / the login item.
 pub const APP_DISPLAY_NAME: &str = "Gibbon";
 /// Reverse-DNS application identifier (bundle id / desktop file base name).
-/// Used by packaging (bundle id, icon/desktop file names) rather than at runtime.
-#[allow(dead_code)]
+/// Used by packaging (bundle id, icon/desktop file names) and as the desktop
+/// notification icon name (matches the installed hicolor icon on Linux).
 pub const APP_ID: &str = "io.github.samuelb.gibbon";
 /// D-Bus well-known name element used for the MPRIS interface on Linux.
 pub const DBUS_NAME: &str = "gibbon";
@@ -46,6 +46,8 @@ pub struct Config {
     pub autoplay: bool,
     /// Whether the app is registered to start on login. Kept in sync with the OS.
     pub autostart: bool,
+    /// Show a desktop notification when the playing track changes.
+    pub notifications: bool,
 }
 
 impl Default for Config {
@@ -55,6 +57,7 @@ impl Default for Config {
             volume: 1.0,
             autoplay: true,
             autostart: false,
+            notifications: true,
         }
     }
 }
