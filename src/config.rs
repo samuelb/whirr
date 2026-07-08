@@ -72,8 +72,8 @@ impl Config {
             return Self::default();
         };
         match std::fs::read_to_string(&path) {
-            Ok(text) => match toml::from_str(&text) {
-                Ok(cfg) => cfg,
+            Ok(text) => match toml::from_str::<Self>(&text) {
+                Ok(cfg) => cfg.normalized(),
                 Err(err) => {
                     log::warn!(
                         "invalid config at {}: {err}; using defaults",
@@ -96,5 +96,36 @@ impl Config {
         let text = toml::to_string_pretty(self).context("serializing config")?;
         std::fs::write(&path, text).with_context(|| format!("writing {}", path.display()))?;
         Ok(())
+    }
+
+    /// Return a config with out-of-range or unsupported values repaired.
+    pub(crate) fn normalized(mut self) -> Self {
+        if !self.volume.is_finite() {
+            log::warn!("invalid volume {}; using default", self.volume);
+            self.volume = Self::default().volume;
+        } else {
+            let clamped = self.volume.clamp(0.0, 1.0);
+            if clamped != self.volume {
+                log::warn!("volume {} outside 0.0..=1.0; clamping", self.volume);
+                self.volume = clamped;
+            }
+        }
+
+        match self.stream_url.parse::<reqwest::Url>() {
+            Ok(url) if matches!(url.scheme(), "http" | "https") => {}
+            Ok(url) => {
+                log::warn!(
+                    "unsupported stream_url scheme {}; using default stream",
+                    url.scheme()
+                );
+                self.stream_url = STREAM_URL.to_string();
+            }
+            Err(err) => {
+                log::warn!("invalid stream_url {}: {err}; using default stream", self.stream_url);
+                self.stream_url = STREAM_URL.to_string();
+            }
+        }
+
+        self
     }
 }
