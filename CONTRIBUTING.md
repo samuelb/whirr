@@ -42,10 +42,14 @@ cargo test --all-features
 
 ## Cutting a release (maintainers)
 
-```bash
-# bump `version` in Cargo.toml, update CHANGELOG.md, then:
-git tag vX.Y.Z
-git push origin vX.Y.Z
-```
+Go to **Actions → Release → Run workflow** and enter the tag to create
+(e.g. `v0.2.0`). No manual tagging or version bumping is needed — the workflow:
 
-The release workflow builds and publishes packages for all platforms.
+1. Bumps `version` in `Cargo.toml`/`Cargo.lock`, promotes the CHANGELOG's
+   *Unreleased* section to the new version, and commits that to the branch.
+2. Builds and packages for all platforms from that commit.
+3. Creates the tag and a GitHub Release with auto-generated notes listing every
+   change since the previous release.
+
+Just collect user-facing changes under *Unreleased* in
+[CHANGELOG.md](CHANGELOG.md) between releases as usual.
