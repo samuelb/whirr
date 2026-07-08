@@ -192,7 +192,12 @@ where
 
 /// Per-session worker: owns a [`Sink`] and reconnects with exponential backoff
 /// until its generation is retired.
-fn worker<E>(config: Config, handle: rodio::OutputStreamHandle, should_run: ShouldRun, emit: E) -> bool
+fn worker<E>(
+    config: Config,
+    handle: rodio::OutputStreamHandle,
+    should_run: ShouldRun,
+    emit: E,
+) -> bool
 where
     E: Fn(PlayerEvent) + Send + Clone + 'static,
 {

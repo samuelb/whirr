@@ -121,7 +121,10 @@ impl Config {
                 self.stream_url = STREAM_URL.to_string();
             }
             Err(err) => {
-                log::warn!("invalid stream_url {}: {err}; using default stream", self.stream_url);
+                log::warn!(
+                    "invalid stream_url {}: {err}; using default stream",
+                    self.stream_url
+                );
                 self.stream_url = STREAM_URL.to_string();
             }
         }
