@@ -274,12 +274,12 @@ impl App {
     fn tooltip(&self) -> String {
         match self.status {
             PlaybackStatus::Playing => match &self.title {
-                Some(t) => format!("{STATION_NAME} — {t}"),
-                None => format!("{STATION_NAME} — playing"),
+                Some(t) => t.clone(),
+                None => "Playing".to_string(),
             },
-            PlaybackStatus::Buffering => format!("{STATION_NAME} — connecting…"),
-            PlaybackStatus::Paused => format!("{STATION_NAME} — paused"),
-            PlaybackStatus::Error => format!("{STATION_NAME} — reconnecting…"),
+            PlaybackStatus::Buffering => "Connecting…".to_string(),
+            PlaybackStatus::Paused => "Paused".to_string(),
+            PlaybackStatus::Error => "Reconnecting…".to_string(),
         }
     }
 }
