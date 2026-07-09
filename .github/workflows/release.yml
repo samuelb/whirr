@@ -191,6 +191,8 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ needs.prepare.outputs.sha }}
+          # Full history + tags so the notes step can diff against the last tag.
+          fetch-depth: 0
 
       - uses: actions/download-artifact@v4
         with:
@@ -204,11 +206,33 @@ jobs:
         env:
           TAG: ${{ inputs.tag }}
 
+      - name: Build release notes
+        env:
+          TAG: ${{ inputs.tag }}
+          SHA: ${{ needs.prepare.outputs.sha }}
+        run: |
+          # Last tag reachable from the release commit's parent (the new tag is
+          # created by the release step below, so it isn't counted here).
+          prev="$(git describe --tags --abbrev=0 "$SHA^" 2>/dev/null || true)"
+          range="${prev:+$prev..}$SHA"
+          {
+            echo "## Changes"
+            echo
+            # One bullet per commit, skipping the automated "Release vX.Y.Z" bump.
+            git log --no-merges --invert-grep --grep='^Release v' \
+              --pretty='- %s (%h)' "$range"
+            if [ -n "$prev" ]; then
+              echo
+              echo "**Full Changelog**: https://github.com/$GITHUB_REPOSITORY/compare/$prev...$TAG"
+            fi
+          } > release-notes.md
+          cat release-notes.md
+
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
           target_commitish: ${{ needs.prepare.outputs.sha }}
-          generate_release_notes: true
+          body_path: release-notes.md
           make_latest: true
           files: dist/*
           fail_on_unmatched_files: true
