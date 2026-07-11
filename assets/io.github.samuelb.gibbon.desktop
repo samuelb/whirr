@@ -2,10 +2,10 @@
 Type=Application
 Name=Gibbon
 GenericName=Internet Radio Player
-Comment=Unofficial system-tray player for the Example Radio stream (example.com)
+Comment=System-tray player for internet radio (MP3) streams
 Exec=gibbon
 Icon=io.github.samuelb.gibbon
 Terminal=false
 Categories=AudioVideo;Audio;Player;
-Keywords=radio;stream;music;exampleradio;
+Keywords=radio;stream;music;mp3;
 StartupNotify=false

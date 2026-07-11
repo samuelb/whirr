@@ -3,7 +3,7 @@ name = "gibbon"
 version = "0.3.0"
 edition = "2021"
 rust-version = "1.89"
-description = "A tiny system-tray player for the Example Radio internet stream (example.com). Unofficial, not affiliated with example.com."
+description = "A tiny system-tray player for internet radio (MP3) streams."
 authors = ["Gibbon contributors"]
 license = "MIT"
 repository = "https://github.com/samuelb/gibbon"
@@ -52,6 +52,11 @@ log = "0.4"
 env_logger = "0.11"
 crossbeam-channel = "0.5"
 
+# The stream-URL dialog on Linux is a plain GTK3 dialog — GTK is already
+# linked there via tao/tray-icon, so this adds no new system dependency.
+[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
+gtk = "0.18"
+
 [target.'cfg(target_os = "windows")'.build-dependencies]
 winresource = "0.1"
 
@@ -72,10 +77,9 @@ maintainer = "Gibbon contributors"
 copyright = "2026, Gibbon contributors"
 license-file = ["LICENSE-MIT", "0"]
 extended-description = """\
-An unofficial, lightweight system-tray client for the Example Radio internet \
-stream (https://example.com/). One-click play/pause, now-playing tooltip, \
-MPRIS and media-key integration, and automatic reconnect. \
-Not affiliated with example.com."""
+A lightweight system-tray player for internet radio (MP3) streams. \
+Plays a user-configured stream URL with one-click play/pause, now-playing \
+tooltip, MPRIS and media-key integration, and automatic reconnect."""
 section = "sound"
 priority = "optional"
 depends = "$auto, libgtk-3-0, libayatana-appindicator3-1, libasound2"
@@ -88,7 +92,7 @@ assets = [
 
 # cargo-generate-rpm (Fedora/RHEL/openSUSE .rpm)
 [package.metadata.generate-rpm]
-summary = "Unofficial system-tray player for the Example Radio stream (example.com)"
+summary = "System-tray player for internet radio (MP3) streams"
 license = "MIT"
 assets = [
     { source = "target/release/gibbon", dest = "/usr/bin/gibbon", mode = "755" },
@@ -107,7 +111,7 @@ name = "Gibbon"
 identifier = "io.github.samuelb.gibbon"
 icon = ["assets/icons/gibbon.icns"]
 category = "Music"
-short_description = "System-tray player for the Example Radio stream."
+short_description = "System-tray player for internet radio streams."
 long_description = """\
-An unofficial, lightweight system-tray client for the Example Radio internet \
-stream (https://example.com/). Not affiliated with example.com."""
+A lightweight system-tray player for internet radio (MP3) streams. \
+Plays a user-configured stream URL."""

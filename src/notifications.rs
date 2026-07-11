@@ -2,7 +2,7 @@
 
 use notify_rust::Notification;
 
-use crate::config::{APP_DISPLAY_NAME, APP_ID, STATION_NAME};
+use crate::config::{APP_DISPLAY_NAME, APP_ID};
 use crate::util;
 
 /// Show a desktop notification announcing the newly playing track.
@@ -18,7 +18,7 @@ pub fn song_changed(title: &str) {
     if let Err(err) = Notification::new()
         .appname(APP_DISPLAY_NAME)
         .summary(song)
-        .body(artist.unwrap_or(STATION_NAME))
+        .body(artist.unwrap_or_default())
         // Icon-theme name on Linux (matches the installed hicolor icon);
         // ignored by the macOS and Windows backends.
         .icon(APP_ID)

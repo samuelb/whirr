@@ -26,6 +26,6 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>Unofficial client. Not affiliated with example.com. https://example.com/</string>
+    <string>Gibbon contributors. https://github.com/samuelb/gibbon</string>
 </dict>
 </plist>

@@ -1,12 +1,10 @@
 # Contributing
 
-Thanks for your interest in improving **gibbon**! This is an unofficial,
-community project and is not affiliated with example.com.
+Thanks for your interest in improving **gibbon**!
 
 ## Ground rules
 
-- Be respectful. Do not use this project to redistribute the station's audio or
-  to imply any official relationship with example.com.
+- Be respectful.
 - By contributing you agree your work is licensed under the MIT license
   (see [README](README.md#license)).
 

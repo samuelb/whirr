@@ -1,8 +1,4 @@
 //! Application constants and the persisted user configuration.
-//!
-//! The stream and station referenced here belong to Example Radio
-//! (<https://example.com/>). This project is an unofficial, independent client
-//! and is not affiliated with, endorsed by, or connected to example.com.
 
 use std::path::PathBuf;
 
@@ -10,16 +6,9 @@ use anyhow::{Context, Result};
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 
-/// The Example Radio stream endpoint (upstream). See <https://example.com/>.
-pub const STREAM_URL: &str = "https://example.com/stream.mp3";
-/// Human-readable station name, shown in menus, tooltips and media controls.
-pub const STATION_NAME: &str = "Example Radio";
-/// The station's website. Opened from the tray menu.
-pub const STATION_URL: &str = "https://example.com/";
 /// This project's repository (shown in the About entry).
 pub const REPO_URL: &str = "https://github.com/samuelb/gibbon";
-/// The application's own name (this client), distinct from the station name.
-/// Shown to the OS for media controls / the login item.
+/// The application's name, shown to the OS for media controls / the login item.
 pub const APP_DISPLAY_NAME: &str = "Gibbon";
 /// Reverse-DNS application identifier (bundle id / desktop file base name).
 /// Used by packaging (bundle id, icon/desktop file names) and as the desktop
@@ -34,12 +23,30 @@ pub const USER_AGENT: &str = concat!(
     " (+https://github.com/samuelb/gibbon)"
 );
 
+/// Comment block written above the config when no stream URL is set yet,
+/// telling the user what to add.
+const STREAM_URL_HINT: &str = "\
+# No stream URL is configured. Use \"Set stream URL…\" in the tray menu, or set
+# stream_url here, e.g.:
+#
+#     stream_url = \"https://example.com/stream.mp3\"
+#
+# Changes to this file take effect after restarting the app.
+
+";
+
+/// Whether `s` parses as an http(s) URL — the only kind of stream we accept.
+pub fn is_valid_stream_url(s: &str) -> bool {
+    matches!(s.parse::<reqwest::Url>(), Ok(url) if matches!(url.scheme(), "http" | "https"))
+}
+
 /// Persisted user settings, stored as TOML in the platform config directory.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
-    /// Stream URL to play. Overridable for testing or alternate mounts.
-    pub stream_url: String,
+    /// The http(s) MP3 stream to play. There is no default: the user must set
+    /// one in the config file before playback is possible.
+    pub stream_url: Option<String>,
     /// Output volume in the range `0.0..=1.0`.
     pub volume: f32,
     /// Start playing automatically when the app launches.
@@ -53,7 +60,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            stream_url: STREAM_URL.to_string(),
+            stream_url: None,
             volume: 1.0,
             autoplay: true,
             autostart: false,
@@ -96,9 +103,24 @@ impl Config {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("creating config dir {}", parent.display()))?;
         }
-        let text = toml::to_string_pretty(self).context("serializing config")?;
+        let mut text = toml::to_string_pretty(self).context("serializing config")?;
+        if self.stream_url.is_none() {
+            text.insert_str(0, STREAM_URL_HINT);
+        }
         std::fs::write(&path, text).with_context(|| format!("writing {}", path.display()))?;
         Ok(())
+    }
+
+    /// Write the config file if it does not exist yet, so users have a file
+    /// (with the stream-URL hint) to edit. Best-effort.
+    pub fn write_if_missing(&self) {
+        if let Some(path) = Self::path() {
+            if !path.exists() {
+                if let Err(err) = self.save() {
+                    log::warn!("could not write initial config: {err:#}");
+                }
+            }
+        }
     }
 
     /// Return a config with out-of-range or unsupported values repaired.
@@ -114,21 +136,10 @@ impl Config {
             }
         }
 
-        match self.stream_url.parse::<reqwest::Url>() {
-            Ok(url) if matches!(url.scheme(), "http" | "https") => {}
-            Ok(url) => {
-                log::warn!(
-                    "unsupported stream_url scheme {}; using default stream",
-                    url.scheme()
-                );
-                self.stream_url = STREAM_URL.to_string();
-            }
-            Err(err) => {
-                log::warn!(
-                    "invalid stream_url {}: {err}; using default stream",
-                    self.stream_url
-                );
-                self.stream_url = STREAM_URL.to_string();
+        if let Some(url) = &self.stream_url {
+            if !is_valid_stream_url(url) {
+                log::warn!("invalid or non-http(s) stream_url {url}; ignoring it");
+                self.stream_url = None;
             }
         }
 
@@ -139,6 +150,11 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn defaults_to_no_stream_url() {
+        assert_eq!(Config::default().stream_url, None);
+    }
 
     #[test]
     fn normalizes_invalid_volume() {
@@ -169,13 +185,42 @@ mod tests {
     }
 
     #[test]
-    fn normalizes_invalid_stream_url() {
-        let cfg = Config {
-            stream_url: "file:///tmp/audio.mp3".to_string(),
+    fn rejects_invalid_stream_url() {
+        let unsupported_scheme = Config {
+            stream_url: Some("file:///tmp/audio.mp3".to_string()),
+            ..Config::default()
+        }
+        .normalized();
+        let unparsable = Config {
+            stream_url: Some("not a url".to_string()),
             ..Config::default()
         }
         .normalized();
 
-        assert_eq!(cfg.stream_url, STREAM_URL);
+        assert_eq!(unsupported_scheme.stream_url, None);
+        assert_eq!(unparsable.stream_url, None);
+    }
+
+    #[test]
+    fn keeps_valid_stream_url() {
+        let cfg = Config {
+            stream_url: Some("https://example.com/stream.mp3".to_string()),
+            ..Config::default()
+        }
+        .normalized();
+
+        assert_eq!(
+            cfg.stream_url.as_deref(),
+            Some("https://example.com/stream.mp3")
+        );
+    }
+
+    #[test]
+    fn serializes_and_reloads_config_without_stream_url() {
+        let text = toml::to_string_pretty(&Config::default()).unwrap();
+        assert!(!text.contains("stream_url"));
+
+        let reloaded: Config = toml::from_str(&text).unwrap();
+        assert_eq!(reloaded.stream_url, None);
     }
 }

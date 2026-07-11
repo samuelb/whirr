@@ -4,16 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Gibbon is a tiny, cross-platform (Linux/macOS/Windows) system-tray player for the
-Example Radio internet stream, written in Rust. It has no windowed UI — just a tray
-icon, its menu, and OS media-control integration. It is an **unofficial** client with
-no affiliation to example.com; keep that framing intact in user-facing strings and docs.
+Gibbon is a tiny, cross-platform (Linux/macOS/Windows) system-tray player for
+internet radio (MP3) streams, written in Rust. It has no windowed UI — just a tray
+icon, its menu, OS media-control integration, and one native stream-URL dialog.
+The stream to play is set via the "Set stream URL…" menu item (persisted as
+`stream_url` in the config file); there is deliberately **no built-in default
+station** — do not add one. Without a URL the app runs with Play disabled until
+the user sets one.
 
 ## Commands
 
 ```bash
 cargo run                     # run locally (tray app)
-cargo run -- --selftest       # headless: connect, decode silently ~10s, exit 0/1 (needs network + audio device)
+cargo run -- --selftest       # headless: connect, decode silently ~10s, exit 0/1 (needs network, audio device + configured stream_url)
 cargo test                    # unit tests, all offline
 cargo test <name>             # single test, e.g. `cargo test clamps_out_of_range_volume`
 cargo fmt --all               # format
@@ -65,14 +68,28 @@ the crux of the codebase:
   the channel via `ChannelSource` (a `Send + Sync` `MediaSource`, which the raw HTTP response
   is not). Pipeline: reqwest → `IcyReader` demux → channel → Symphonia decode → Rodio/CPAL.
 
+**Stream-URL dialog (`src/dialog.rs`).** One native prompt per platform, chosen to
+avoid pulling in a GUI toolkit: GTK3 on Linux (already linked via tao/tray-icon),
+`osascript` on macOS, PowerShell's `InputBox` on Windows. All three are
+asynchronous — the result is delivered via a callback that posts
+`UserEvent::StreamUrlEntered` back into the event loop (the callback may run on a
+worker thread on macOS/Windows). `App` validates the input, saves the config, and
+hands the new URL to the running engine via `Player::set_stream_url`, which
+restarts the worker if playing — URL changes need no app restart.
+
 **ICY demux (`src/icy.rs`).** A `Read` adapter that strips interleaved SHOUTcast/Icecast
 metadata blocks (every `icy-metaint` bytes) from the audio and reports `StreamTitle` changes
 through a callback. Pure and unit-tested.
 
-**Config (`src/config.rs`).** TOML persisted in the platform config dir. Loading always
-falls back to defaults on any error and runs `normalized()` (clamps volume, rejects
-non-http(s) stream URLs). Also holds the app-wide constants (`STATION_NAME`, `APP_ID`,
-`USER_AGENT`, etc.) — reuse these rather than hardcoding strings.
+**Config (`src/config.rs`).** TOML persisted in the platform config dir. `stream_url`
+is an `Option<String>` with no default; `normalized()` clamps volume and turns
+non-http(s)/unparsable stream URLs into `None` (`is_valid_stream_url` is the shared
+check, also used by the dialog flow). Loading always falls back to defaults on any
+error. On first launch a config file with a commented stream-URL hint is written
+(`write_if_missing`). The URL set via the dialog applies immediately; manual edits
+to the file take effect on restart. Also holds the app-wide constants
+(`APP_DISPLAY_NAME`, `APP_ID`, `USER_AGENT`, etc.) — reuse these rather than
+hardcoding strings.
 
 ## Conventions
 

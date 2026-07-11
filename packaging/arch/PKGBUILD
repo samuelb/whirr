@@ -1,10 +1,9 @@
 # Maintainer: Gibbon contributors
-# Unofficial system-tray client for the Example Radio stream (https://example.com/).
-# Not affiliated with example.com.
+# System-tray player for internet radio (MP3) streams.
 pkgname=gibbon
 pkgver=0.3.0
 pkgrel=1
-pkgdesc="Unofficial system-tray player for the Example Radio internet stream (example.com)"
+pkgdesc="System-tray player for internet radio (MP3) streams"
 arch=('x86_64' 'aarch64')
 url="https://github.com/samuelb/gibbon"
 license=('MIT')

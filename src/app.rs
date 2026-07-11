@@ -9,9 +9,9 @@ use tao::window::{Window, WindowBuilder};
 use tray_icon::menu::{MenuEvent, MenuId};
 use tray_icon::{MouseButton, MouseButtonState, TrayIconEvent};
 
-use crate::config::{Config, APP_DISPLAY_NAME, REPO_URL, STATION_NAME, STATION_URL};
+use crate::config::{Config, APP_DISPLAY_NAME, REPO_URL};
 use crate::player::{PlaybackStatus, Player, PlayerEvent};
-use crate::{autostart, controls, icons, notifications, tray, util};
+use crate::{autostart, config, controls, dialog, icons, notifications, tray, util};
 
 /// Events funnelled into the main event loop from various sources.
 enum UserEvent {
@@ -19,6 +19,8 @@ enum UserEvent {
     Tray(TrayIconEvent),
     Media(MediaControlEvent),
     Player(PlayerEvent),
+    /// Result of the stream-URL dialog: the entered text, or `None` on cancel.
+    StreamUrlEntered(Option<String>),
 }
 
 /// Build the event loop, wire everything up, and run until the user quits.
@@ -74,6 +76,7 @@ pub fn run(config: Config) -> Result<()> {
         status: PlaybackStatus::Paused,
         title: None,
         last_song: None,
+        url_dialog_open: false,
     };
 
     event_loop.run(move |event, _target, control_flow| {
@@ -100,12 +103,19 @@ struct App {
     /// were off). Used to fire a notification only on a genuine track change,
     /// not on reconnects or pause/resume of the same song.
     last_song: Option<String>,
+    /// Whether the stream-URL dialog is currently showing (prevents stacking
+    /// a second one from repeated menu clicks).
+    url_dialog_open: bool,
 }
 
 impl App {
     /// Build the tray and media controls once the platform GUI context is live.
     fn on_init(&mut self) {
-        match tray::build(autostart::is_enabled(), self.config.notifications) {
+        match tray::build(
+            autostart::is_enabled(),
+            self.config.notifications,
+            self.config.stream_url.is_some(),
+        ) {
             Ok(t) => self.tray = Some(t),
             Err(err) => log::error!("failed to create tray icon: {err:#}"),
         }
@@ -119,7 +129,7 @@ impl App {
         }
 
         self.apply_status(self.status);
-        if self.config.autoplay {
+        if self.config.autoplay && self.config.stream_url.is_some() {
             self.player.play();
         }
     }
@@ -131,14 +141,15 @@ impl App {
             UserEvent::Media(ev) => self.on_media(ev),
             UserEvent::Player(PlayerEvent::Status(s)) => self.apply_status(s),
             UserEvent::Player(PlayerEvent::Title(t)) => self.apply_title(t),
+            UserEvent::StreamUrlEntered(result) => self.on_stream_url_entered(result),
         }
     }
 
     fn on_menu(&mut self, id: &MenuId, control_flow: &mut ControlFlow) {
         if id == tray::ID_PLAY_PAUSE {
             self.player.toggle();
-        } else if id == tray::ID_OPEN_SITE {
-            util::open_url(STATION_URL);
+        } else if id == tray::ID_SET_URL {
+            self.open_url_dialog(false, None);
         } else if id == tray::ID_ABOUT {
             util::open_url(REPO_URL);
         } else if id == tray::ID_AUTOSTART {
@@ -169,6 +180,53 @@ impl App {
             MediaControlEvent::Toggle => self.player.toggle(),
             _ => {}
         }
+    }
+
+    /// Show the stream-URL dialog, pre-filled with `prefill` (falling back to
+    /// the configured URL). The result arrives as [`UserEvent::StreamUrlEntered`].
+    fn open_url_dialog(&mut self, invalid: bool, prefill: Option<String>) {
+        if self.url_dialog_open {
+            return;
+        }
+        self.url_dialog_open = true;
+        let proxy = self.proxy.clone();
+        dialog::prompt_stream_url(
+            prefill.or_else(|| self.config.stream_url.clone()),
+            invalid,
+            move |result| {
+                let _ = proxy.send_event(UserEvent::StreamUrlEntered(result));
+            },
+        );
+    }
+
+    fn on_stream_url_entered(&mut self, result: Option<String>) {
+        self.url_dialog_open = false;
+        let Some(input) = result else { return };
+        let input = input.trim().to_string();
+        if input.is_empty() {
+            return;
+        }
+        if !config::is_valid_stream_url(&input) {
+            // Re-open the dialog with the rejected input so it can be fixed.
+            self.open_url_dialog(true, Some(input));
+            return;
+        }
+
+        self.config.stream_url = Some(input);
+        if let Err(err) = self.config.save() {
+            log::warn!("could not save config: {err:#}");
+        }
+        self.player.set_stream_url(self.config.stream_url.clone());
+
+        // Refresh the "No stream URL configured" states, then start playing
+        // the newly configured stream right away.
+        if let Some(tray) = &self.tray {
+            tray.play_pause.set_enabled(true);
+        }
+        self.apply_status(self.status);
+        let title = self.title.take();
+        self.apply_title(title);
+        self.player.play();
     }
 
     fn toggle_autostart(&mut self) {
@@ -245,10 +303,11 @@ impl App {
         self.title = title;
 
         if let Some(tray) = &self.tray {
-            let text = self
-                .title
-                .clone()
-                .unwrap_or_else(|| "Not playing".to_string());
+            let text = match &self.title {
+                Some(t) => t.clone(),
+                None if self.config.stream_url.is_none() => "No stream URL configured".to_string(),
+                None => "Not playing".to_string(),
+            };
             tray.now_playing.set_text(text);
             let _ = tray.icon.set_tooltip(Some(self.tooltip()));
         }
@@ -259,12 +318,12 @@ impl App {
                     let (a, t) = util::split_artist_title(s);
                     (a.map(str::to_string), t.to_string())
                 }
-                None => (None, STATION_NAME.to_string()),
+                None => (None, APP_DISPLAY_NAME.to_string()),
             };
             let _ = controls.set_metadata(MediaMetadata {
                 title: Some(&title),
                 artist: artist.as_deref(),
-                album: Some(STATION_NAME),
+                album: None,
                 cover_url: None,
                 duration: None,
             });
@@ -272,6 +331,9 @@ impl App {
     }
 
     fn tooltip(&self) -> String {
+        if self.config.stream_url.is_none() {
+            return "No stream URL configured".to_string();
+        }
         match self.status {
             PlaybackStatus::Playing => match &self.title {
                 Some(t) => t.clone(),

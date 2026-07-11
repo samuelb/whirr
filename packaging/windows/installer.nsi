@@ -1,7 +1,5 @@
-; NSIS installer for gibbon (unofficial Gibbon tray client).
+; NSIS installer for gibbon (system-tray player for internet radio streams).
 ; Build with:  makensis -DVERSION=0.1.0 -DSRCEXE=target\release\gibbon.exe packaging\windows\installer.nsi
-;
-; Not affiliated with example.com (https://example.com/).
 
 !ifndef VERSION
   !define VERSION "0.3.0"
@@ -12,7 +10,7 @@
 
 !include "MUI2.nsh"
 
-Name "Gibbon (unofficial)"
+Name "Gibbon"
 OutFile "gibbon-setup-${VERSION}.exe"
 Unicode True
 InstallDir "$PROGRAMFILES64\Gibbon"
@@ -42,7 +40,7 @@ Section "Gibbon" SecMain
 
   ; Add/Remove Programs entry.
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Gibbon" \
-    "DisplayName" "Gibbon (unofficial)"
+    "DisplayName" "Gibbon"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Gibbon" \
     "DisplayVersion" "${VERSION}"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Gibbon" \
@@ -50,7 +48,7 @@ Section "Gibbon" SecMain
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Gibbon" \
     "UninstallString" "$INSTDIR\uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Gibbon" \
-    "URLInfoAbout" "https://example.com/"
+    "URLInfoAbout" "https://github.com/samuelb/gibbon"
   WriteUninstaller "$INSTDIR\uninstall.exe"
 SectionEnd
 

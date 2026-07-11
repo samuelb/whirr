@@ -1,4 +1,4 @@
-//! Audio engine: a pure-Rust pipeline that streams the Example Radio MP3 feed,
+//! Audio engine: a pure-Rust pipeline that streams the configured MP3 feed,
 //! strips ICY metadata, decodes with Symphonia and plays through Rodio/CPAL.
 //!
 //! Design
@@ -66,6 +66,8 @@ enum Command {
     Play,
     Pause,
     Toggle,
+    /// Switch to a new stream URL (or none), restarting playback if active.
+    SetStreamUrl(Option<String>),
     WorkerFailed(usize),
     Quit,
 }
@@ -101,6 +103,9 @@ impl Player {
     pub fn toggle(&self) {
         let _ = self.cmd_tx.send(Command::Toggle);
     }
+    pub fn set_stream_url(&self, url: Option<String>) {
+        let _ = self.cmd_tx.send(Command::SetStreamUrl(url));
+    }
     pub fn quit(&self) {
         let _ = self.cmd_tx.send(Command::Quit);
     }
@@ -110,7 +115,7 @@ impl Player {
 /// the active one?". When it returns false the session must wind down.
 type ShouldRun = Arc<dyn Fn() -> bool + Send + Sync>;
 
-fn engine<E>(config: Config, cmd_rx: Receiver<Command>, cmd_tx: Sender<Command>, emit: E)
+fn engine<E>(mut config: Config, cmd_rx: Receiver<Command>, cmd_tx: Sender<Command>, emit: E)
 where
     E: Fn(PlayerEvent) + Send + Clone + 'static,
 {
@@ -129,7 +134,9 @@ where
     let generation = Arc::new(AtomicUsize::new(0));
     let mut playing = false;
 
-    let start = |generation: &Arc<AtomicUsize>| {
+    // Takes the config as a parameter (rather than capturing it) so the
+    // command loop below can mutate it between starts.
+    let start = |config: &Config, generation: &Arc<AtomicUsize>| {
         let my_gen = generation.fetch_add(1, Ordering::SeqCst) + 1;
         let gen = generation.clone();
         let should_run: ShouldRun = Arc::new(move || gen.load(Ordering::SeqCst) == my_gen);
@@ -155,8 +162,13 @@ where
     for cmd in cmd_rx.iter() {
         match cmd {
             Command::Play if !playing => {
-                playing = true;
-                start(&generation);
+                if config.stream_url.is_some() {
+                    playing = true;
+                    start(&config, &generation);
+                } else {
+                    log::warn!("no stream URL configured; cannot play");
+                    emit(PlayerEvent::Status(PlaybackStatus::Paused));
+                }
             }
             Command::Pause if playing => {
                 playing = false;
@@ -170,9 +182,25 @@ where
                     stop(&generation);
                     emit(PlayerEvent::Status(PlaybackStatus::Paused));
                     emit(PlayerEvent::Title(None));
-                } else {
+                } else if config.stream_url.is_some() {
                     playing = true;
-                    start(&generation);
+                    start(&config, &generation);
+                } else {
+                    log::warn!("no stream URL configured; cannot play");
+                    emit(PlayerEvent::Status(PlaybackStatus::Paused));
+                }
+            }
+            Command::SetStreamUrl(url) => {
+                config.stream_url = url;
+                if playing {
+                    stop(&generation);
+                    emit(PlayerEvent::Title(None));
+                    if config.stream_url.is_some() {
+                        start(&config, &generation);
+                    } else {
+                        playing = false;
+                        emit(PlayerEvent::Status(PlaybackStatus::Paused));
+                    }
                 }
             }
             Command::Quit => {
@@ -244,6 +272,11 @@ fn stream_session<E>(config: &Config, sink: &Sink, should_run: &ShouldRun, emit:
 where
     E: Fn(PlayerEvent) + Send + Clone + 'static,
 {
+    let url = config
+        .stream_url
+        .as_deref()
+        .context("no stream URL configured")?;
+
     let client = reqwest::blocking::Client::builder()
         .user_agent(USER_AGENT)
         .connect_timeout(Duration::from_secs(10))
@@ -251,7 +284,7 @@ where
         .context("building HTTP client")?;
 
     let response = client
-        .get(&config.stream_url)
+        .get(url)
         .header("Icy-MetaData", "1")
         .send()
         .context("connecting to stream")?

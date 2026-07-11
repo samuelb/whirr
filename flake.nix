@@ -1,5 +1,5 @@
 {
-  description = "gibbon — unofficial system-tray player for the Example Radio stream (https://example.com/)";
+  description = "gibbon — system-tray player for internet radio (MP3) streams";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -51,7 +51,7 @@
           '';
 
           meta = with pkgs.lib; {
-            description = "Unofficial system-tray player for the Example Radio stream (example.com)";
+            description = "System-tray player for internet radio (MP3) streams";
             homepage = "https://github.com/samuelb/gibbon";
             license = licenses.mit;
             mainProgram = "gibbon";

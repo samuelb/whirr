@@ -1,8 +1,7 @@
-//! gibbon — an unofficial system-tray player for the Example Radio internet
-//! stream (<https://example.com/>).
+//! gibbon — a tiny system-tray player for an internet radio (MP3) stream.
 //!
-//! This project is not affiliated with, endorsed by, or connected to
-//! example.com in any way. It is an independent, community-built client.
+//! The stream to play is set via `stream_url` in the config file; there is
+//! no built-in default.
 
 // On Windows, don't spawn a console window for this GUI/tray app.
 #![cfg_attr(
@@ -14,6 +13,7 @@ mod app;
 mod autostart;
 mod config;
 mod controls;
+mod dialog;
 mod icons;
 mod icy;
 mod notifications;
@@ -31,6 +31,10 @@ fn main() {
         std::process::exit(selftest(config));
     }
 
+    // Make sure a config file (with the stream-URL hint on a fresh install)
+    // exists for users who prefer editing settings by hand.
+    config.write_if_missing();
+
     if let Err(err) = app::run(config) {
         log::error!("fatal: {err:#}");
         std::process::exit(1);
@@ -41,6 +45,11 @@ fn main() {
 fn selftest(mut config: config::Config) -> i32 {
     use player::{PlaybackStatus, Player, PlayerEvent};
     use std::time::{Duration, Instant};
+
+    if config.stream_url.is_none() {
+        eprintln!("SELFTEST FAILED: no stream URL configured (set stream_url in the config file)");
+        return 1;
+    }
 
     config.volume = 0.0; // stay silent during the test
     let (tx, rx) = std::sync::mpsc::channel();

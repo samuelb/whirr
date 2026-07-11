@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Gibbon is now a general-purpose stream player: there is no built-in default
+  station anymore. The MP3 stream to play is set via the new **Set stream
+  URL…** tray menu item, which opens a native dialog and applies the new URL
+  immediately (it is persisted to `stream_url` in the config file). On a fresh
+  install the tray shows "No stream URL configured" until a URL is set.
+- The "Open … website" tray menu item was removed in favour of
+  **Set stream URL…**.
+
 ## [0.3.0] - 2026-07-09
 
 ## [0.2.0] - 2026-07-08
@@ -16,7 +26,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- System-tray player for the Example Radio stream (<https://example.com/>).
+- System-tray player for an internet radio (MP3) stream.
 - One-button play/pause from the tray icon and menu.
 - Now-playing track from ICY `StreamTitle`, shown in the tooltip and menu.
 - System media controls and media-key support via MPRIS (Linux), SMTC

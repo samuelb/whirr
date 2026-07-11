@@ -1,22 +1,16 @@
 # 📻 Gibbon
 
-A tiny, native **system-tray player** for the **Example Radio** internet stream
-([example.com](https://example.com/)). One click to play or pause, hover to see
-the current track, with proper OS media-control and media-key integration and
+A tiny, native **system-tray player** for internet radio (MP3) streams. Point it
+at any http(s) MP3 stream, then one click to play or pause, hover to see the
+current track, with proper OS media-control and media-key integration and
 automatic reconnect — written in Rust, packaged for every major desktop.
-
-> [!IMPORTANT]
-> **Unofficial project — no affiliation.** Gibbon is an independent,
-> community-built client. It is **not** affiliated with, endorsed by, sponsored
-> by, or connected to example.com or its operators in any way. All station
-> names, stream content, and trademarks belong to their respective owners.
-> Please support the station directly at <https://example.com/>.
 
 ---
 
 ## Features
 
 - ▶️ / ⏸️ **One-button play / pause** from the tray icon or its menu.
+- 🔗 **Bring your own stream** — plays any http(s) MP3 stream you configure.
 - 🎵 **Now-playing track** shown on hover (tray tooltip) and in the menu, parsed
   live from the stream's ICY metadata.
 - 🎛️ **System media controls** — MPRIS on Linux, System Media Transport Controls
@@ -111,13 +105,18 @@ sudo apt-get install libgtk-3-dev libayatana-appindicator3-dev libasound2-dev pk
 ## Usage
 
 Launch **Gibbon** (from your app launcher or the command line). A tray icon
-appears; it starts playing automatically by default.
+appears.
+
+**First run:** no stream is configured yet, so the tray shows *No stream URL
+configured*. Choose **Set stream URL…** from the tray menu, enter the URL of
+the MP3 stream you want to play, and playback starts right away. On later
+launches Gibbon starts playing automatically by default.
 
 - **Left-click** the icon (Windows/macOS) to toggle play/pause.
 - **Right-click** (or left-click on Linux) opens the menu:
   - the current track (or *Not playing*),
   - **Play / Pause**,
-  - **Open Example Radio website** → <https://example.com/>,
+  - **Set stream URL…** (opens the configuration dialog),
   - **Start on login** (toggle),
   - **About**,
   - **Quit**.
@@ -134,7 +133,14 @@ RUST_LOG=debug gibbon  # verbose logging
 
 ## Configuration
 
-Settings are stored as TOML and created on first change. Location:
+The stream URL is set from the tray menu (**Set stream URL…**) and takes
+effect immediately — no restart needed. The dialog is native on every
+platform: a GTK dialog on Linux, an AppleScript dialog on macOS, and an input
+box on Windows.
+
+All settings (including the URL) are also stored as TOML; the file is created
+on first launch. Edits to the file take effect after restarting the app.
+Location:
 
 | OS      | Path                                                              |
 | ------- | ---------------------------------------------------------------- |
@@ -143,7 +149,8 @@ Settings are stored as TOML and created on first change. Location:
 | Windows | `%APPDATA%\samuelb\gibbon\config\config.toml`                    |
 
 ```toml
-# Stream URL (defaults to the Example Radio upstream mount).
+# The http(s) MP3 stream to play. There is no default; set it here or via
+# the "Set stream URL…" tray menu item.
 stream_url = "https://example.com/stream.mp3"
 # Output volume, 0.0–1.0
 volume = 1.0
@@ -207,8 +214,3 @@ Licensed under the MIT license ([LICENSE-MIT](LICENSE-MIT)).
 Unless you explicitly state otherwise, any contribution you intentionally submit
 for inclusion shall be licensed as above, without any additional terms or
 conditions.
-
-## Acknowledgements
-
-Thanks to **Example Radio** for the music — tune in at <https://example.com/>.
-Again: this is an unofficial client and is not affiliated with example.com.
