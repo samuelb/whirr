@@ -118,6 +118,7 @@ launches Gibbon starts playing automatically by default.
   - **Play / Pause**,
   - **Set stream URL…** (opens the configuration dialog),
   - **Start on login** (toggle),
+  - **Autoplay on startup** (toggle),
   - **About**,
   - **Quit**.
 - **Media keys** and your desktop's media widget / lock-screen controls work too.

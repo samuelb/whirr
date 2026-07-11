@@ -113,6 +113,7 @@ impl App {
     fn on_init(&mut self) {
         match tray::build(
             autostart::is_enabled(),
+            self.config.autoplay,
             self.config.notifications,
             self.config.stream_url.is_some(),
         ) {
@@ -154,6 +155,8 @@ impl App {
             util::open_url(REPO_URL);
         } else if id == tray::ID_AUTOSTART {
             self.toggle_autostart();
+        } else if id == tray::ID_AUTOPLAY {
+            self.toggle_autoplay();
         } else if id == tray::ID_NOTIFICATIONS {
             self.toggle_notifications();
         } else if id == tray::ID_QUIT {
@@ -243,6 +246,18 @@ impl App {
         // Reflect the actual OS state, whatever happened.
         if let Some(tray) = &self.tray {
             tray.autostart.set_checked(autostart::is_enabled());
+        }
+    }
+
+    /// Toggle autoplay-on-startup. Only affects future launches; the current
+    /// playback state is left alone.
+    fn toggle_autoplay(&mut self) {
+        self.config.autoplay = !self.config.autoplay;
+        if let Err(err) = self.config.save() {
+            log::warn!("could not save config: {err:#}");
+        }
+        if let Some(tray) = &self.tray {
+            tray.autoplay.set_checked(self.config.autoplay);
         }
     }
 

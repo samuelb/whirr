@@ -12,6 +12,7 @@ pub const ID_PLAY_PAUSE: &str = "play_pause";
 pub const ID_NOW_PLAYING: &str = "now_playing";
 pub const ID_SET_URL: &str = "set_stream_url";
 pub const ID_AUTOSTART: &str = "autostart";
+pub const ID_AUTOPLAY: &str = "autoplay";
 pub const ID_NOTIFICATIONS: &str = "notifications";
 pub const ID_ABOUT: &str = "about";
 pub const ID_QUIT: &str = "quit";
@@ -22,6 +23,7 @@ pub struct Tray {
     pub play_pause: MenuItem,
     pub now_playing: MenuItem,
     pub autostart: CheckMenuItem,
+    pub autoplay: CheckMenuItem,
     pub notifications: CheckMenuItem,
 }
 
@@ -29,6 +31,7 @@ pub struct Tray {
 /// started (required by tray-icon on macOS and Linux/GTK).
 pub fn build(
     autostart_enabled: bool,
+    autoplay_enabled: bool,
     notifications_enabled: bool,
     has_stream_url: bool,
 ) -> Result<Tray> {
@@ -53,6 +56,13 @@ pub fn build(
         autostart_enabled,
         None,
     );
+    let autoplay = CheckMenuItem::with_id(
+        ID_AUTOPLAY,
+        "Autoplay on startup",
+        true,
+        autoplay_enabled,
+        None,
+    );
     let notifications = CheckMenuItem::with_id(
         ID_NOTIFICATIONS,
         "Notify on song change",
@@ -69,6 +79,7 @@ pub fn build(
     menu.append(&PredefinedMenuItem::separator())?;
     menu.append(&set_url).context("append set_url")?;
     menu.append(&autostart).context("append autostart")?;
+    menu.append(&autoplay).context("append autoplay")?;
     menu.append(&notifications)
         .context("append notifications")?;
     menu.append(&PredefinedMenuItem::separator())?;
@@ -88,6 +99,7 @@ pub fn build(
         play_pause,
         now_playing,
         autostart,
+        autoplay,
         notifications,
     })
 }

@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- "Autoplay on startup" toggle in the tray menu (previously only settable via
+  `autoplay` in the config file).
+
 ### Changed
 
 - Gibbon is now a general-purpose stream player: there is no built-in default
