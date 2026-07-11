@@ -140,8 +140,8 @@ platform: a GTK dialog on Linux, an AppleScript dialog on macOS, and an input
 box on Windows.
 
 All settings (including the URL) are also stored as TOML; the file is created
-on first launch. Edits to the file take effect after restarting the app.
-Location:
+on first launch and watched while the app runs — edits are applied
+automatically within a couple of seconds, no restart needed. Location:
 
 | OS      | Path                                                              |
 | ------- | ---------------------------------------------------------------- |

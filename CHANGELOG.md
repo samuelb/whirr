@@ -8,6 +8,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The config file is now watched while the app runs: edits (stream URL,
+  volume, autostart, …) are applied automatically within a couple of seconds,
+  no restart needed. Volume changes apply to live playback.
 - "Autoplay on startup" toggle in the tray menu (previously only settable via
   `autoplay` in the config file).
 

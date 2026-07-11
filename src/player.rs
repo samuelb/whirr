@@ -20,7 +20,7 @@
 //!   Symphonia's `MediaSource` bound without the (non-`Sync`) HTTP response.
 
 use std::io::{self, Read, Seek, SeekFrom};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -68,6 +68,8 @@ enum Command {
     Toggle,
     /// Switch to a new stream URL (or none), restarting playback if active.
     SetStreamUrl(Option<String>),
+    /// Change the output volume; applied to live playback without a restart.
+    SetVolume(f32),
     WorkerFailed(usize),
     Quit,
 }
@@ -106,6 +108,9 @@ impl Player {
     pub fn set_stream_url(&self, url: Option<String>) {
         let _ = self.cmd_tx.send(Command::SetStreamUrl(url));
     }
+    pub fn set_volume(&self, volume: f32) {
+        let _ = self.cmd_tx.send(Command::SetVolume(volume));
+    }
     pub fn quit(&self) {
         let _ = self.cmd_tx.send(Command::Quit);
     }
@@ -132,6 +137,9 @@ where
     };
 
     let generation = Arc::new(AtomicUsize::new(0));
+    // Volume as f32 bits, shared with workers so changes apply to live
+    // playback without restarting the stream.
+    let volume = Arc::new(AtomicU32::new(config.volume.clamp(0.0, 1.0).to_bits()));
     let mut playing = false;
 
     // Takes the config as a parameter (rather than capturing it) so the
@@ -142,13 +150,14 @@ where
         let should_run: ShouldRun = Arc::new(move || gen.load(Ordering::SeqCst) == my_gen);
         let cfg = config.clone();
         let handle = handle.clone();
+        let volume = volume.clone();
         let emit = emit.clone();
         let cmd_tx = cmd_tx.clone();
         emit(PlayerEvent::Status(PlaybackStatus::Buffering));
         thread::Builder::new()
             .name("audio-worker".into())
             .spawn(move || {
-                if !worker(cfg, handle, should_run, emit) {
+                if !worker(cfg, handle, volume, should_run, emit) {
                     let _ = cmd_tx.send(Command::WorkerFailed(my_gen));
                 }
             })
@@ -190,6 +199,11 @@ where
                     emit(PlayerEvent::Status(PlaybackStatus::Paused));
                 }
             }
+            Command::SetVolume(v) => {
+                let v = v.clamp(0.0, 1.0);
+                config.volume = v;
+                volume.store(v.to_bits(), Ordering::Relaxed);
+            }
             Command::SetStreamUrl(url) => {
                 config.stream_url = url;
                 if playing {
@@ -223,6 +237,7 @@ where
 fn worker<E>(
     config: Config,
     handle: rodio::OutputStreamHandle,
+    volume: Arc<AtomicU32>,
     should_run: ShouldRun,
     emit: E,
 ) -> bool
@@ -237,12 +252,12 @@ where
             return false;
         }
     };
-    sink.set_volume(config.volume.clamp(0.0, 1.0));
+    sink.set_volume(f32::from_bits(volume.load(Ordering::Relaxed)));
 
     let mut backoff = Duration::from_secs(1);
     while should_run() {
         emit(PlayerEvent::Status(PlaybackStatus::Buffering));
-        match stream_session(&config, &sink, &should_run, &emit) {
+        match stream_session(&config, &sink, &volume, &should_run, &emit) {
             Ok(()) => {
                 if !should_run() {
                     break;
@@ -268,7 +283,13 @@ where
 
 /// Connect once and decode until the stream ends, errors, or the session is
 /// retired. Returns `Ok(())` on a clean end (so the caller reconnects promptly).
-fn stream_session<E>(config: &Config, sink: &Sink, should_run: &ShouldRun, emit: &E) -> Result<()>
+fn stream_session<E>(
+    config: &Config,
+    sink: &Sink,
+    volume: &AtomicU32,
+    should_run: &ShouldRun,
+    emit: &E,
+) -> Result<()>
 where
     E: Fn(PlayerEvent) + Send + Clone + 'static,
 {
@@ -326,7 +347,7 @@ where
         })
         .context("spawning network thread")?;
 
-    let result = decode_loop(rx, sink, should_run, emit);
+    let result = decode_loop(rx, sink, volume, should_run, emit);
     if should_run() {
         let _ = net.join();
     }
@@ -337,6 +358,7 @@ where
 fn decode_loop<E>(
     rx: Receiver<Vec<u8>>,
     sink: &Sink,
+    volume: &AtomicU32,
     should_run: &ShouldRun,
     emit: &E,
 ) -> Result<()>
@@ -368,7 +390,15 @@ where
         .context("creating decoder")?;
 
     let mut announced = false;
+    let mut volume_bits = volume.load(Ordering::Relaxed);
     while should_run() {
+        // Pick up live volume changes (e.g. from a config-file edit).
+        let bits = volume.load(Ordering::Relaxed);
+        if bits != volume_bits {
+            volume_bits = bits;
+            sink.set_volume(f32::from_bits(bits));
+        }
+
         let packet = match format.next_packet() {
             Ok(p) => p,
             Err(SymError::IoError(e)) if e.kind() == io::ErrorKind::UnexpectedEof => {

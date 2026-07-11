@@ -86,8 +86,11 @@ is an `Option<String>` with no default; `normalized()` clamps volume and turns
 non-http(s)/unparsable stream URLs into `None` (`is_valid_stream_url` is the shared
 check, also used by the dialog flow). Loading always falls back to defaults on any
 error. On first launch a config file with a commented stream-URL hint is written
-(`write_if_missing`). The URL set via the dialog applies immediately; manual edits
-to the file take effect on restart. Also holds the app-wide constants
+(`write_if_missing`). The URL set via the dialog applies immediately, and the file
+itself is hot-reloaded: a `config-watcher` thread polls its contents (~2s) and the
+app diffs the reloaded config against the running one (`App::on_config_file_changed`),
+applying URL/volume/autostart changes live — invalid TOML during a reload is ignored
+rather than reset to defaults (`load_strict` vs `load`). Also holds the app-wide constants
 (`APP_DISPLAY_NAME`, `APP_ID`, `USER_AGENT`, etc.) — reuse these rather than
 hardcoding strings.
 

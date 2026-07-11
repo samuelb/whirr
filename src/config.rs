@@ -31,7 +31,7 @@ const STREAM_URL_HINT: &str = "\
 #
 #     stream_url = \"https://example.com/stream.mp3\"
 #
-# Changes to this file take effect after restarting the app.
+# Changes to this file are applied automatically while the app is running.
 
 ";
 
@@ -41,7 +41,7 @@ pub fn is_valid_stream_url(s: &str) -> bool {
 }
 
 /// Persisted user settings, stored as TOML in the platform config directory.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
     /// The http(s) MP3 stream to play. There is no default: the user must set
@@ -96,6 +96,17 @@ impl Config {
         }
     }
 
+    /// Load and normalize the config from disk, erroring on a missing or
+    /// unparsable file. Used by the file watcher, which must ignore a
+    /// half-written file instead of falling back to defaults.
+    pub fn load_strict() -> Result<Self> {
+        let path = Self::path().context("no config directory available")?;
+        let text = std::fs::read_to_string(&path)
+            .with_context(|| format!("reading {}", path.display()))?;
+        let cfg: Self = toml::from_str(&text).context("parsing config")?;
+        Ok(cfg.normalized())
+    }
+
     /// Persist the config to disk, creating the parent directory as needed.
     pub fn save(&self) -> Result<()> {
         let path = Self::path().context("no config directory available")?;
@@ -120,6 +131,35 @@ impl Config {
                     log::warn!("could not write initial config: {err:#}");
                 }
             }
+        }
+    }
+
+    /// Spawn a thread that polls the config file and calls `on_change`
+    /// whenever its contents change (a couple of seconds of latency).
+    /// Comparing contents — not mtimes — coalesces multi-step editor saves
+    /// and survives atomic-rename writes, which break naive path watchers.
+    pub fn spawn_watcher<F>(on_change: F)
+    where
+        F: Fn() + Send + 'static,
+    {
+        let Some(path) = Self::path() else {
+            return;
+        };
+        let spawned = std::thread::Builder::new()
+            .name("config-watcher".into())
+            .spawn(move || {
+                let mut last = std::fs::read(&path).ok();
+                loop {
+                    std::thread::sleep(std::time::Duration::from_secs(2));
+                    let current = std::fs::read(&path).ok();
+                    if current != last {
+                        last = current;
+                        on_change();
+                    }
+                }
+            });
+        if let Err(err) = spawned {
+            log::warn!("could not start config watcher: {err}");
         }
     }
 

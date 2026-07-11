@@ -21,6 +21,8 @@ enum UserEvent {
     Player(PlayerEvent),
     /// Result of the stream-URL dialog: the entered text, or `None` on cancel.
     StreamUrlEntered(Option<String>),
+    /// The config file on disk was modified (reported by the file watcher).
+    ConfigFileChanged,
 }
 
 /// Build the event loop, wire everything up, and run until the user quits.
@@ -64,6 +66,12 @@ pub fn run(config: Config) -> Result<()> {
     let player_proxy = proxy.clone();
     let player = Player::new(config.clone(), move |ev| {
         let _ = player_proxy.send_event(UserEvent::Player(ev));
+    });
+
+    // Apply edits to the config file without a restart.
+    let watcher_proxy = proxy.clone();
+    Config::spawn_watcher(move || {
+        let _ = watcher_proxy.send_event(UserEvent::ConfigFileChanged);
     });
 
     let mut app = App {
@@ -143,6 +151,7 @@ impl App {
             UserEvent::Player(PlayerEvent::Status(s)) => self.apply_status(s),
             UserEvent::Player(PlayerEvent::Title(t)) => self.apply_title(t),
             UserEvent::StreamUrlEntered(result) => self.on_stream_url_entered(result),
+            UserEvent::ConfigFileChanged => self.on_config_file_changed(),
         }
     }
 
@@ -246,6 +255,50 @@ impl App {
         // Reflect the actual OS state, whatever happened.
         if let Some(tray) = &self.tray {
             tray.autostart.set_checked(autostart::is_enabled());
+        }
+    }
+
+    /// Reload the config file and apply whatever changed. A missing or
+    /// unparsable file (e.g. an edit still being written) is ignored; our own
+    /// saves arrive here too and no-op because nothing differs.
+    fn on_config_file_changed(&mut self) {
+        let new = match Config::load_strict() {
+            Ok(cfg) => cfg,
+            Err(err) => {
+                log::warn!("ignoring config file change: {err:#}");
+                return;
+            }
+        };
+        if new == self.config {
+            return;
+        }
+        log::info!("config file changed; applying new settings");
+        let old = std::mem::replace(&mut self.config, new);
+
+        if self.config.stream_url != old.stream_url {
+            // The engine restarts (or stops) playback as needed; playback is
+            // not started here if it wasn't already running.
+            self.player.set_stream_url(self.config.stream_url.clone());
+            if let Some(tray) = &self.tray {
+                tray.play_pause
+                    .set_enabled(self.config.stream_url.is_some());
+            }
+            self.apply_status(self.status);
+            let title = self.title.take();
+            self.apply_title(title);
+        }
+        if self.config.volume != old.volume {
+            self.player.set_volume(self.config.volume);
+        }
+        if self.config.autostart != old.autostart {
+            if let Err(err) = autostart::set(self.config.autostart) {
+                log::error!("could not change autostart: {err:#}");
+            }
+        }
+        if let Some(tray) = &self.tray {
+            tray.autostart.set_checked(autostart::is_enabled());
+            tray.autoplay.set_checked(self.config.autoplay);
+            tray.notifications.set_checked(self.config.notifications);
         }
     }
 
