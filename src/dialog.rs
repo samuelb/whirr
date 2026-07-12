@@ -10,18 +10,35 @@
 
 const TITLE: &str = "Whirr";
 
-fn prompt_text(invalid: bool) -> &'static str {
-    if invalid {
-        "That is not a valid http(s) URL.\nEnter the URL of the MP3 stream to play:"
-    } else {
-        "Enter the URL of the MP3 stream to play:"
+/// Why the prompt is being shown; selects the explanatory text above the
+/// input field.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Reason {
+    /// A plain configuration request (menu item or first launch).
+    Configure,
+    /// The previous input was rejected as invalid.
+    InvalidInput,
+    /// Playback was requested while no stream URL is configured.
+    PlayRequested,
+}
+
+fn prompt_text(reason: Reason) -> &'static str {
+    match reason {
+        Reason::Configure => "Enter the URL of the MP3 stream to play:",
+        Reason::InvalidInput => {
+            "That is not a valid http(s) URL.\nEnter the URL of the MP3 stream to play:"
+        }
+        Reason::PlayRequested => {
+            "No stream URL is configured, so there is nothing to play yet.\n\
+             Enter the URL of the MP3 stream to play:"
+        }
     }
 }
 
-/// Show the stream-URL prompt, pre-filled with `current`. With `invalid` set,
-/// the prompt explains that the previous input was rejected.
+/// Show the stream-URL prompt, pre-filled with `current`. `reason` selects an
+/// explanatory message (e.g. that the previous input was rejected).
 #[cfg(all(unix, not(target_os = "macos")))]
-pub fn prompt_stream_url<F>(current: Option<String>, invalid: bool, on_result: F)
+pub fn prompt_stream_url<F>(current: Option<String>, reason: Reason, on_result: F)
 where
     F: FnOnce(Option<String>) + Send + 'static,
 {
@@ -39,7 +56,7 @@ where
     dialog.set_default_response(gtk::ResponseType::Ok);
     dialog.set_keep_above(true);
 
-    let label = gtk::Label::new(Some(prompt_text(invalid)));
+    let label = gtk::Label::new(Some(prompt_text(reason)));
     let entry = gtk::Entry::new();
     entry.set_text(current.as_deref().unwrap_or(""));
     entry.set_width_chars(48);
@@ -67,14 +84,14 @@ where
 }
 
 #[cfg(target_os = "macos")]
-pub fn prompt_stream_url<F>(current: Option<String>, invalid: bool, on_result: F)
+pub fn prompt_stream_url<F>(current: Option<String>, reason: Reason, on_result: F)
 where
     F: FnOnce(Option<String>) + Send + 'static,
 {
     let script = format!(
         "text returned of (display dialog {} default answer {} with title {} \
          buttons {{\"Cancel\", \"Save\"}} default button \"Save\")",
-        applescript_str(prompt_text(invalid)),
+        applescript_str(prompt_text(reason)),
         applescript_str(current.as_deref().unwrap_or("")),
         applescript_str(TITLE),
     );
@@ -106,7 +123,7 @@ fn applescript_str(s: &str) -> String {
 }
 
 #[cfg(target_os = "windows")]
-pub fn prompt_stream_url<F>(current: Option<String>, invalid: bool, on_result: F)
+pub fn prompt_stream_url<F>(current: Option<String>, reason: Reason, on_result: F)
 where
     F: FnOnce(Option<String>) + Send + 'static,
 {
@@ -116,7 +133,7 @@ where
     let command = format!(
         "Add-Type -AssemblyName Microsoft.VisualBasic; \
          [Microsoft.VisualBasic.Interaction]::InputBox({}, {}, {})",
-        powershell_str(prompt_text(invalid)),
+        powershell_str(prompt_text(reason)),
         powershell_str(TITLE),
         powershell_str(current.as_deref().unwrap_or("")),
     );

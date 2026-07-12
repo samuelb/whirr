@@ -141,6 +141,12 @@ impl App {
         if self.config.autoplay && self.config.stream_url.is_some() {
             self.player.play();
         }
+
+        // Nothing can play until a stream URL is set, so take first-time
+        // users straight to the configuration dialog.
+        if self.config.stream_url.is_none() {
+            self.open_url_dialog(dialog::Reason::Configure, None);
+        }
     }
 
     fn on_user_event(&mut self, event: UserEvent, control_flow: &mut ControlFlow) {
@@ -157,9 +163,9 @@ impl App {
 
     fn on_menu(&mut self, id: &MenuId, control_flow: &mut ControlFlow) {
         if id == tray::ID_PLAY_PAUSE {
-            self.player.toggle();
+            self.toggle_requested();
         } else if id == tray::ID_SET_URL {
-            self.open_url_dialog(false, None);
+            self.open_url_dialog(dialog::Reason::Configure, None);
         } else if id == tray::ID_ABOUT {
             util::open_url(REPO_URL);
         } else if id == tray::ID_AUTOSTART {
@@ -181,22 +187,45 @@ impl App {
             ..
         } = event
         {
-            self.player.toggle();
+            self.toggle_requested();
         }
     }
 
     fn on_media(&mut self, event: MediaControlEvent) {
         match event {
-            MediaControlEvent::Play => self.player.play(),
+            MediaControlEvent::Play => self.play_requested(),
             MediaControlEvent::Pause | MediaControlEvent::Stop => self.player.pause(),
-            MediaControlEvent::Toggle => self.player.toggle(),
+            MediaControlEvent::Toggle => self.toggle_requested(),
             _ => {}
         }
     }
 
+    /// A user gesture (menu, tray click, media key) asked to start playback.
+    /// With no stream URL configured there is nothing to play, so open the
+    /// URL dialog with a warning instead of silently doing nothing (a desktop
+    /// notification is not reliable enough for this — macOS may drop it);
+    /// autoplay on startup bypasses these helpers and stays quiet.
+    fn play_requested(&mut self) {
+        if self.config.stream_url.is_none() {
+            self.open_url_dialog(dialog::Reason::PlayRequested, None);
+            return;
+        }
+        self.player.play();
+    }
+
+    /// Like [`Self::play_requested`], for toggle gestures. Playback cannot be
+    /// active without a URL, so a toggle without one is always a play attempt.
+    fn toggle_requested(&mut self) {
+        if self.config.stream_url.is_none() {
+            self.open_url_dialog(dialog::Reason::PlayRequested, None);
+            return;
+        }
+        self.player.toggle();
+    }
+
     /// Show the stream-URL dialog, pre-filled with `prefill` (falling back to
     /// the configured URL). The result arrives as [`UserEvent::StreamUrlEntered`].
-    fn open_url_dialog(&mut self, invalid: bool, prefill: Option<String>) {
+    fn open_url_dialog(&mut self, reason: dialog::Reason, prefill: Option<String>) {
         if self.url_dialog_open {
             return;
         }
@@ -204,7 +233,7 @@ impl App {
         let proxy = self.proxy.clone();
         dialog::prompt_stream_url(
             prefill.or_else(|| self.config.stream_url.clone()),
-            invalid,
+            reason,
             move |result| {
                 let _ = proxy.send_event(UserEvent::StreamUrlEntered(result));
             },
@@ -220,7 +249,7 @@ impl App {
         }
         if !config::is_valid_stream_url(&input) {
             // Re-open the dialog with the rejected input so it can be fixed.
-            self.open_url_dialog(true, Some(input));
+            self.open_url_dialog(dialog::Reason::InvalidInput, Some(input));
             return;
         }
 
