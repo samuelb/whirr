@@ -1,4 +1,8 @@
-# 📻 Whirr
+<p align="center">
+  <img src="assets/logo.svg" alt="Whirr logo" width="160">
+</p>
+
+# Whirr
 
 A tiny, native **system-tray player** for internet radio (MP3) streams. Point it
 at any http(s) MP3 stream, then one click to play or pause, hover to see the
