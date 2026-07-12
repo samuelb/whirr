@@ -4,7 +4,11 @@
 //! Design
 //! ------
 //! * A single **engine thread** owns the audio output device and processes
-//!   commands ([`Command`]) from the UI.
+//!   commands ([`Command`]) from the UI. The device is opened lazily on the
+//!   first play and released (the [`OutputStream`] dropped) whenever playback
+//!   stops, so an idle/paused Whirr holds no output stream open — otherwise the
+//!   OS audio server keeps mixing silence into the (built-in-speaker) DSP for as
+//!   long as the app runs, a continuous CPU cost even while nothing plays.
 //! * "Playing" is represented by a monotonically increasing *generation* stored
 //!   in a shared [`AtomicUsize`]. Starting playback bumps the generation and
 //!   spawns a **worker** tagged with it; pausing/stopping simply bumps the
@@ -28,7 +32,7 @@ use std::time::Duration;
 use anyhow::{anyhow, Context, Result};
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use rodio::buffer::SamplesBuffer;
-use rodio::{OutputStream, Sink};
+use rodio::{OutputStream, OutputStreamHandle, Sink};
 use symphonia::core::audio::SampleBuffer;
 use symphonia::core::codecs::DecoderOptions;
 use symphonia::core::errors::Error as SymError;
@@ -124,32 +128,43 @@ fn engine<E>(mut config: Config, cmd_rx: Receiver<Command>, cmd_tx: Sender<Comma
 where
     E: Fn(PlayerEvent) + Send + Clone + 'static,
 {
-    // Keep the output stream alive for the whole engine lifetime. It is not
-    // `Send`, so it must stay on this thread; workers create their own `Sink`
-    // from a cloned handle.
-    let (_stream, handle) = match OutputStream::try_default() {
-        Ok(pair) => pair,
-        Err(err) => {
-            log::error!("no audio output device: {err}");
-            emit(PlayerEvent::Status(PlaybackStatus::Error));
-            return;
-        }
-    };
-
     let generation = Arc::new(AtomicUsize::new(0));
     // Volume as f32 bits, shared with workers so changes apply to live
     // playback without restarting the stream.
     let volume = Arc::new(AtomicU32::new(config.volume.clamp(0.0, 1.0).to_bits()));
     let mut playing = false;
 
-    // Takes the config as a parameter (rather than capturing it) so the
-    // command loop below can mutate it between starts.
-    let start = |config: &Config, generation: &Arc<AtomicUsize>| {
+    // The audio device, opened lazily on the first play and dropped whenever
+    // playback stops (see the module docs). It is not `Send`, so it stays on
+    // this engine thread; workers build their `Sink` from a cloned handle
+    // (`OutputStreamHandle` *is* `Send`), and dropping the `OutputStream` while
+    // a worker winds down is harmless (its `Sink` just feeds a dead mixer).
+    let mut stream: Option<(OutputStream, OutputStreamHandle)> = None;
+
+    // Begin a playback session: open the device if needed, then spawn a worker
+    // tagged with a fresh generation. Returns whether playback started — `false`
+    // (with an `Error` status emitted) means the device could not be opened.
+    // Takes the config as a parameter (rather than capturing it) so the command
+    // loop below can mutate it between starts.
+    let start = |stream: &mut Option<(OutputStream, OutputStreamHandle)>,
+                 config: &Config,
+                 generation: &Arc<AtomicUsize>|
+     -> bool {
+        if stream.is_none() {
+            match OutputStream::try_default() {
+                Ok(pair) => *stream = Some(pair),
+                Err(err) => {
+                    log::error!("no audio output device: {err}");
+                    emit(PlayerEvent::Status(PlaybackStatus::Error));
+                    return false;
+                }
+            }
+        }
+        let handle = stream.as_ref().expect("stream opened above").1.clone();
         let my_gen = generation.fetch_add(1, Ordering::SeqCst) + 1;
         let gen = generation.clone();
         let should_run: ShouldRun = Arc::new(move || gen.load(Ordering::SeqCst) == my_gen);
         let cfg = config.clone();
-        let handle = handle.clone();
         let volume = volume.clone();
         let emit = emit.clone();
         let cmd_tx = cmd_tx.clone();
@@ -162,6 +177,7 @@ where
                 }
             })
             .expect("spawn audio worker");
+        true
     };
 
     let stop = |generation: &Arc<AtomicUsize>| {
@@ -172,8 +188,7 @@ where
         match cmd {
             Command::Play if !playing => {
                 if config.stream_url.is_some() {
-                    playing = true;
-                    start(&config, &generation);
+                    playing = start(&mut stream, &config, &generation);
                 } else {
                     log::warn!("no stream URL configured; cannot play");
                     emit(PlayerEvent::Status(PlaybackStatus::Paused));
@@ -182,6 +197,7 @@ where
             Command::Pause if playing => {
                 playing = false;
                 stop(&generation);
+                stream = None; // release the audio device while idle
                 emit(PlayerEvent::Status(PlaybackStatus::Paused));
                 emit(PlayerEvent::Title(None));
             }
@@ -189,11 +205,11 @@ where
                 if playing {
                     playing = false;
                     stop(&generation);
+                    stream = None; // release the audio device while idle
                     emit(PlayerEvent::Status(PlaybackStatus::Paused));
                     emit(PlayerEvent::Title(None));
                 } else if config.stream_url.is_some() {
-                    playing = true;
-                    start(&config, &generation);
+                    playing = start(&mut stream, &config, &generation);
                 } else {
                     log::warn!("no stream URL configured; cannot play");
                     emit(PlayerEvent::Status(PlaybackStatus::Paused));
@@ -210,9 +226,14 @@ where
                     stop(&generation);
                     emit(PlayerEvent::Title(None));
                     if config.stream_url.is_some() {
-                        start(&config, &generation);
+                        // Reuse the already-open device for the new stream.
+                        playing = start(&mut stream, &config, &generation);
+                        if !playing {
+                            stream = None;
+                        }
                     } else {
                         playing = false;
+                        stream = None; // release the audio device while idle
                         emit(PlayerEvent::Status(PlaybackStatus::Paused));
                     }
                 }
@@ -224,6 +245,7 @@ where
             Command::WorkerFailed(worker_gen) => {
                 if playing && generation.load(Ordering::SeqCst) == worker_gen {
                     playing = false;
+                    stream = None; // worker gave up; release the audio device
                     emit(PlayerEvent::Title(None));
                     // The worker gave up (no audio sink); without this the UI
                     // would keep showing the last Buffering/Error status as if
