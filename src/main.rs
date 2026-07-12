@@ -24,6 +24,8 @@ mod util;
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
+    // Pick up a config left at the pre-0.4 location before loading.
+    config::Config::migrate_legacy_path();
     let config = config::Config::load();
 
     // Hidden diagnostic: connect, decode silently for a few seconds, and report.

@@ -71,9 +71,49 @@ impl Default for Config {
 
 impl Config {
     /// Path to the on-disk config file, if a config directory can be determined.
+    /// The directory is named plain `whirr` on every platform (e.g.
+    /// `~/.config/whirr`, `~/Library/Application Support/whirr`).
     pub fn path() -> Option<PathBuf> {
+        ProjectDirs::from("", "", "whirr").map(|dirs| dirs.config_dir().join("config.toml"))
+    }
+
+    /// The config file's location before 0.4, when the directory was named
+    /// after the full bundle id (`io.github.samuelb.whirr` on macOS,
+    /// `samuelb\whirr` on Windows). On Linux it was already plain `whirr`.
+    fn legacy_path() -> Option<PathBuf> {
         ProjectDirs::from("io.github", "samuelb", "whirr")
             .map(|dirs| dirs.config_dir().join("config.toml"))
+    }
+
+    /// Move the config file from [`Self::legacy_path`] to [`Self::path`], so
+    /// existing settings survive the directory rename. Best-effort: on any
+    /// failure the old file stays put and a fresh config is used instead.
+    pub fn migrate_legacy_path() {
+        let (Some(old), Some(new)) = (Self::legacy_path(), Self::path()) else {
+            return;
+        };
+        if old == new || !old.exists() || new.exists() {
+            return;
+        }
+        let moved = match new.parent() {
+            Some(parent) => std::fs::create_dir_all(parent),
+            None => Ok(()),
+        }
+        .and_then(|()| std::fs::rename(&old, &new));
+        match moved {
+            Ok(()) => {
+                log::info!("moved config from {} to {}", old.display(), new.display());
+                // Remove the legacy directory; fails harmlessly if not empty.
+                if let Some(dir) = old.parent() {
+                    let _ = std::fs::remove_dir(dir);
+                }
+            }
+            Err(err) => log::warn!(
+                "could not move config from {} to {}: {err}",
+                old.display(),
+                new.display()
+            ),
+        }
     }
 
     /// Load config from disk, falling back to defaults on any error.

@@ -150,8 +150,8 @@ automatically within a couple of seconds, no restart needed. Location:
 | OS      | Path                                                              |
 | ------- | ---------------------------------------------------------------- |
 | Linux   | `~/.config/whirr/config.toml`                              |
-| macOS   | `~/Library/Application Support/io.github.samuelb.whirr/config.toml` |
-| Windows | `%APPDATA%\samuelb\whirr\config\config.toml`                    |
+| macOS   | `~/Library/Application Support/whirr/config.toml`          |
+| Windows | `%APPDATA%\whirr\config\config.toml`                       |
 
 ```toml
 # The http(s) MP3 stream to play. There is no default; set it here or via
