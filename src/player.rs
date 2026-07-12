@@ -225,6 +225,10 @@ where
                 if playing && generation.load(Ordering::SeqCst) == worker_gen {
                     playing = false;
                     emit(PlayerEvent::Title(None));
+                    // The worker gave up (no audio sink); without this the UI
+                    // would keep showing the last Buffering/Error status as if
+                    // a reconnect were still coming.
+                    emit(PlayerEvent::Status(PlaybackStatus::Paused));
                 }
             }
             Command::Play | Command::Pause => {} // already in the requested state
@@ -257,7 +261,8 @@ where
     let mut backoff = Duration::from_secs(1);
     while should_run() {
         emit(PlayerEvent::Status(PlaybackStatus::Buffering));
-        match stream_session(&config, &sink, &volume, &should_run, &emit) {
+        let mut played = false;
+        match stream_session(&config, &sink, &volume, &should_run, &emit, &mut played) {
             Ok(()) => {
                 if !should_run() {
                     break;
@@ -269,6 +274,11 @@ where
             Err(err) => {
                 if !should_run() {
                     break;
+                }
+                if played {
+                    // The session was healthy before this error; don't punish
+                    // it with backoff left over from earlier failures.
+                    backoff = Duration::from_secs(1);
                 }
                 log::warn!("stream error, reconnecting in {backoff:?}: {err:#}");
                 emit(PlayerEvent::Status(PlaybackStatus::Error));
@@ -283,12 +293,14 @@ where
 
 /// Connect once and decode until the stream ends, errors, or the session is
 /// retired. Returns `Ok(())` on a clean end (so the caller reconnects promptly).
+/// Sets `played` once audio actually reached the sink.
 fn stream_session<E>(
     config: &Config,
     sink: &Sink,
     volume: &AtomicU32,
     should_run: &ShouldRun,
     emit: &E,
+    played: &mut bool,
 ) -> Result<()>
 where
     E: Fn(PlayerEvent) + Send + Clone + 'static,
@@ -301,6 +313,12 @@ where
     let client = reqwest::blocking::Client::builder()
         .user_agent(USER_AGENT)
         .connect_timeout(Duration::from_secs(10))
+        // The blocking client applies this per body-read (a stall guard for
+        // the live stream), not as a whole-request deadline. Without it the
+        // implicit default is 30s; a shorter guard recovers from dead
+        // connections faster and also bounds how long the network thread can
+        // linger after its session is retired.
+        .timeout(Duration::from_secs(15))
         .build()
         .context("building HTTP client")?;
 
@@ -347,10 +365,11 @@ where
         })
         .context("spawning network thread")?;
 
-    let result = decode_loop(rx, sink, volume, should_run, emit);
-    if should_run() {
-        let _ = net.join();
-    }
+    let result = decode_loop(rx, sink, volume, should_run, emit, played);
+    // Always reap the network thread. Dropping `rx` above makes its next
+    // `send` fail, and the read timeout on the HTTP client bounds how long a
+    // stalled read can keep it alive.
+    let _ = net.join();
     result
 }
 
@@ -361,6 +380,7 @@ fn decode_loop<E>(
     volume: &AtomicU32,
     should_run: &ShouldRun,
     emit: &E,
+    played: &mut bool,
 ) -> Result<()>
 where
     E: Fn(PlayerEvent) + Send + Clone + 'static,
@@ -389,7 +409,6 @@ where
         .make(&track.codec_params, &DecoderOptions::default())
         .context("creating decoder")?;
 
-    let mut announced = false;
     let mut volume_bits = volume.load(Ordering::Relaxed);
     while should_run() {
         // Pick up live volume changes (e.g. from a config-file edit).
@@ -430,8 +449,8 @@ where
                     sample_buf.samples().to_vec(),
                 ));
 
-                if !announced {
-                    announced = true;
+                if !*played {
+                    *played = true;
                     sink.play();
                     emit(PlayerEvent::Status(PlaybackStatus::Playing));
                 }

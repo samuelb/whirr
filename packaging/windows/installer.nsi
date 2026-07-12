@@ -44,9 +44,10 @@ Section "Gibbon" SecMain
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Gibbon" \
     "DisplayVersion" "${VERSION}"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Gibbon" \
-    "DisplayIcon" "$INSTDIR\gibbon.ico"
+    "DisplayIcon" '"$INSTDIR\gibbon.ico"'
+  ; Quoted: $INSTDIR defaults to Program Files, which contains a space.
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Gibbon" \
-    "UninstallString" "$INSTDIR\uninstall.exe"
+    "UninstallString" '"$INSTDIR\uninstall.exe"'
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Gibbon" \
     "URLInfoAbout" "https://github.com/samuelb/gibbon"
   WriteUninstaller "$INSTDIR\uninstall.exe"

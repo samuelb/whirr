@@ -1454,7 +1454,6 @@ dependencies = [
  "souvlaki",
  "symphonia",
  "tao",
- "thiserror 1.0.69",
  "toml 0.8.2",
  "tray-icon",
  "winresource",
