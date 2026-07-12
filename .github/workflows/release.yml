@@ -236,3 +236,50 @@ jobs:
           make_latest: true
           files: dist/*
           fail_on_unmatched_files: true
+
+  # ---------------------------------------------------------------- Homebrew tap
+  # Push the refreshed cask to samuelb/homebrew-tap so `brew upgrade` picks up
+  # the new release. Requires a HOMEBREW_TAP_TOKEN secret: a PAT (or fine-grained
+  # token) with write access to the tap repo (the default GITHUB_TOKEN can't push
+  # to another repository).
+  homebrew:
+    name: Update Homebrew tap
+    runs-on: ubuntu-latest
+    needs: [prepare, macos, publish]
+    steps:
+      - name: Check out whirr (for the cask template + stage script)
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - name: Download the macOS .dmg
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-macos
+          path: dist
+
+      - name: Check out the Homebrew tap
+        uses: actions/checkout@v5
+        with:
+          repository: samuelb/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Regenerate the cask
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          sh scripts/stage-homebrew-cask.sh "${TAG#v}" dist/whirr-macos.dmg tap/Casks/whirr.rb
+
+      - name: Commit and push
+        working-directory: tap
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet -- Casks/whirr.rb; then
+            echo "Cask already up to date for $TAG."; exit 0
+          fi
+          git commit -am "whirr ${TAG#v}"
+          git push

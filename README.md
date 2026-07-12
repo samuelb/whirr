@@ -78,6 +78,18 @@ nix profile install github:samuelb/whirr
 
 ### macOS
 
+**Homebrew** (recommended):
+
+```bash
+brew install --cask samuelb/tap/whirr
+```
+
+`brew upgrade --cask whirr` then tracks new releases. The tap lives at
+[samuelb/homebrew-tap](https://github.com/samuelb/homebrew-tap) and is
+refreshed automatically on every release.
+
+**Manual:**
+
 1. Download `whirr-macos.dmg`, open it, and drag **Whirr** to *Applications*.
 2. On first launch, right-click the app and choose **Open** (the build is
    ad-hoc signed; a Developer ID signature can be added in CI).
@@ -204,7 +216,9 @@ cargo run             # run locally
   on Linux, macOS and Windows for every push/PR.
 - **Release** (`.github/workflows/release.yml`): pushing a `vX.Y.Z` tag builds and
   publishes `.deb` + `.rpm` (amd64 & arm64), a universal macOS `.dmg`, and a
-  Windows installer + portable exe, each with `SHA256SUMS`.
+  Windows installer + portable exe, each with `SHA256SUMS`. It then refreshes the
+  [Homebrew cask](https://github.com/samuelb/homebrew-tap) (requires a
+  `HOMEBREW_TAP_TOKEN` repo secret with write access to the tap).
 
 ```bash
 git tag v0.1.0 && git push origin v0.1.0    # cut a release

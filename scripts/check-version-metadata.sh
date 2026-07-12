@@ -25,5 +25,6 @@ check "Info.plist CFBundleShortVersionString" "$(
         /<key>CFBundleShortVersionString<\/key>/ { getline; gsub(/^[[:space:]]*<string>|<\/string>[[:space:]]*$/, ""); print; exit }
     ' packaging/macos/Info.plist
 )"
+check "Homebrew cask" "$(sed -n 's/^[[:space:]]*version "\(.*\)"/\1/p' packaging/homebrew/whirr.rb | head -n 1)"
 
 echo "version metadata matches $version"

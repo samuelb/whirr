@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 # Bump the project to a release version across every file the CI version check
 # (scripts/check-version-metadata.sh) guards: Cargo.toml, Cargo.lock,
-# flake.nix, the Arch PKGBUILD, the NSIS installer and the macOS Info.plist.
-# Keep the patterns below in sync with that check.
+# flake.nix, the Arch PKGBUILD, the NSIS installer, the macOS Info.plist and
+# the Homebrew cask. Keep the patterns below in sync with that check.
 # Usage: bump-version.sh <version>
 #   version   release version without a leading "v" (e.g. 1.2.3)
 set -eu
@@ -55,5 +55,13 @@ awk -v ver="$version" '
   /<key>CFBundleVersion<\/key>/ || /<key>CFBundleShortVersionString<\/key>/ { bump = 1 }
   { print }
 ' packaging/macos/Info.plist > "$tmp" && mv "$tmp" packaging/macos/Info.plist
+
+# --- Homebrew cask: bump the version stanza ---
+awk -v ver="$version" '
+  !done && /^[[:space:]]*version "[^"]*"/ {
+    sub(/"[^"]*"/, "\"" ver "\""); done = 1
+  }
+  { print }
+' packaging/homebrew/whirr.rb > "$tmp" && mv "$tmp" packaging/homebrew/whirr.rb
 
 echo "bumped to $version"
