@@ -1,7 +1,7 @@
 # Maintainer: Whirr contributors
 # System-tray player for internet radio (MP3) streams.
 pkgname=whirr
-pkgver=0.3.0
+pkgver=0.4.0
 pkgrel=1
 pkgdesc="System-tray player for internet radio (MP3) streams"
 arch=('x86_64' 'aarch64')
