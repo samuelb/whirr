@@ -1,20 +1,20 @@
 [package]
-name = "gibbon"
+name = "whirr"
 version = "0.3.0"
 edition = "2021"
 rust-version = "1.89"
 description = "A tiny system-tray player for internet radio (MP3) streams."
-authors = ["Gibbon contributors"]
+authors = ["Whirr contributors"]
 license = "MIT"
-repository = "https://github.com/samuelb/gibbon"
-homepage = "https://github.com/samuelb/gibbon"
+repository = "https://github.com/samuelb/whirr"
+homepage = "https://github.com/samuelb/whirr"
 readme = "README.md"
 keywords = ["radio", "tray", "mpris", "streaming", "audio"]
 categories = ["multimedia::audio"]
-exclude = ["/.github", "/packaging", "/assets/gibbon.iconset"]
+exclude = ["/.github", "/packaging", "/assets/whirr.iconset"]
 
 [[bin]]
-name = "gibbon"
+name = "whirr"
 path = "src/main.rs"
 
 [dependencies]
@@ -72,8 +72,8 @@ panic = "abort"
 
 # cargo-deb (Debian/Ubuntu .deb)
 [package.metadata.deb]
-maintainer = "Gibbon contributors"
-copyright = "2026, Gibbon contributors"
+maintainer = "Whirr contributors"
+copyright = "2026, Whirr contributors"
 license-file = ["LICENSE-MIT", "0"]
 extended-description = """\
 A lightweight system-tray player for internet radio (MP3) streams. \
@@ -83,10 +83,10 @@ section = "sound"
 priority = "optional"
 depends = "$auto, libgtk-3-0, libayatana-appindicator3-1, libasound2"
 assets = [
-    ["target/release/gibbon", "usr/bin/", "755"],
-    ["assets/icons/gibbon.png", "usr/share/icons/hicolor/256x256/apps/io.github.samuelb.gibbon.png", "644"],
-    ["assets/io.github.samuelb.gibbon.desktop", "usr/share/applications/", "644"],
-    ["README.md", "usr/share/doc/gibbon/README.md", "644"],
+    ["target/release/whirr", "usr/bin/", "755"],
+    ["assets/icons/whirr.png", "usr/share/icons/hicolor/256x256/apps/io.github.samuelb.whirr.png", "644"],
+    ["assets/io.github.samuelb.whirr.desktop", "usr/share/applications/", "644"],
+    ["README.md", "usr/share/doc/whirr/README.md", "644"],
 ]
 
 # cargo-generate-rpm (Fedora/RHEL/openSUSE .rpm)
@@ -94,10 +94,10 @@ assets = [
 summary = "System-tray player for internet radio (MP3) streams"
 license = "MIT"
 assets = [
-    { source = "target/release/gibbon", dest = "/usr/bin/gibbon", mode = "755" },
-    { source = "assets/icons/gibbon.png", dest = "/usr/share/icons/hicolor/256x256/apps/io.github.samuelb.gibbon.png", mode = "644" },
-    { source = "assets/io.github.samuelb.gibbon.desktop", dest = "/usr/share/applications/io.github.samuelb.gibbon.desktop", mode = "644" },
-    { source = "README.md", dest = "/usr/share/doc/gibbon/README.md", mode = "644" },
+    { source = "target/release/whirr", dest = "/usr/bin/whirr", mode = "755" },
+    { source = "assets/icons/whirr.png", dest = "/usr/share/icons/hicolor/256x256/apps/io.github.samuelb.whirr.png", mode = "644" },
+    { source = "assets/io.github.samuelb.whirr.desktop", dest = "/usr/share/applications/io.github.samuelb.whirr.desktop", mode = "644" },
+    { source = "README.md", dest = "/usr/share/doc/whirr/README.md", mode = "644" },
 ]
 [package.metadata.generate-rpm.requires]
 gtk3 = "*"
@@ -106,9 +106,9 @@ alsa-lib = "*"
 
 # cargo-bundle (macOS .app / .dmg convenience — CI uses the manual bundler in packaging/macos)
 [package.metadata.bundle]
-name = "Gibbon"
-identifier = "io.github.samuelb.gibbon"
-icon = ["assets/icons/gibbon.icns"]
+name = "Whirr"
+identifier = "io.github.samuelb.whirr"
+icon = ["assets/icons/whirr.icns"]
 category = "Music"
 short_description = "System-tray player for internet radio streams."
 long_description = """\

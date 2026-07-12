@@ -1435,31 +1435,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gibbon"
-version = "0.3.0"
-dependencies = [
- "anyhow",
- "auto-launch",
- "crossbeam-channel",
- "directories",
- "env_logger",
- "gtk",
- "image",
- "log",
- "notify-rust",
- "raw-window-handle",
- "reqwest",
- "rodio",
- "serde",
- "souvlaki",
- "symphonia",
- "tao",
- "toml 0.8.2",
- "tray-icon",
- "winresource",
-]
-
-[[package]]
 name = "gio"
 version = "0.18.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4128,6 +4103,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf85cb06032201fa7c6f829d7db5a7e5aa45bcc0655327713065f6f0576731bf"
 dependencies = [
  "rustls-pki-types",
+]
+
+[[package]]
+name = "whirr"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "auto-launch",
+ "crossbeam-channel",
+ "directories",
+ "env_logger",
+ "gtk",
+ "image",
+ "log",
+ "notify-rust",
+ "raw-window-handle",
+ "reqwest",
+ "rodio",
+ "serde",
+ "souvlaki",
+ "symphonia",
+ "tao",
+ "toml 0.8.2",
+ "tray-icon",
+ "winresource",
 ]
 
 [[package]]

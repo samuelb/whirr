@@ -92,7 +92,7 @@ jobs:
           mkdir -p dist
           cp target/debian/*.deb "dist/"
           cp target/generate-rpm/*.rpm "dist/"
-          tar -C target/release -czf "dist/gibbon-linux-${{ matrix.arch }}.tar.gz" gibbon
+          tar -C target/release -czf "dist/whirr-linux-${{ matrix.arch }}.tar.gz" whirr
           ( cd dist && sha256sum * > "SHA256SUMS-linux-${{ matrix.arch }}.txt" )
 
       - uses: actions/upload-artifact@v4
@@ -124,17 +124,17 @@ jobs:
       - name: Create universal binary and app bundle
         run: |
           mkdir -p dist
-          lipo -create -output dist/gibbon-universal \
-            target/aarch64-apple-darwin/release/gibbon \
-            target/x86_64-apple-darwin/release/gibbon
-          bash packaging/macos/bundle.sh dist/gibbon-universal dist
-          ( cd dist && shasum -a 256 gibbon-macos.dmg > SHA256SUMS-macos.txt )
+          lipo -create -output dist/whirr-universal \
+            target/aarch64-apple-darwin/release/whirr \
+            target/x86_64-apple-darwin/release/whirr
+          bash packaging/macos/bundle.sh dist/whirr-universal dist
+          ( cd dist && shasum -a 256 whirr-macos.dmg > SHA256SUMS-macos.txt )
 
       - uses: actions/upload-artifact@v4
         with:
           name: dist-macos
           path: |
-            dist/gibbon-macos.dmg
+            dist/whirr-macos.dmg
             dist/SHA256SUMS-macos.txt
           if-no-files-found: error
 
@@ -170,8 +170,8 @@ jobs:
           makensis "/DVERSION=$version" installer.nsi
           Pop-Location
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Move-Item packaging\windows\gibbon-setup-*.exe dist\
-          Copy-Item target\release\gibbon.exe dist\gibbon-windows-x64.exe
+          Move-Item packaging\windows\whirr-setup-*.exe dist\
+          Copy-Item target\release\whirr.exe dist\whirr-windows-x64.exe
           # Hash the artifacts only; globbing dist\* would include (and lock) the output file.
           $files = Get-ChildItem dist -File | Where-Object { $_.Name -ne 'SHA256SUMS-windows.txt' }
           Get-FileHash $files -Algorithm SHA256 | Out-File dist\SHA256SUMS-windows.txt

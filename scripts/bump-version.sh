@@ -5,12 +5,12 @@
 # Info.plist. Keep the patterns below in sync with that check.
 # Usage: bump-version.sh <version> [repo-slug] [date]
 #   version   release version without a leading "v" (e.g. 1.2.3)
-#   repo-slug GitHub "owner/name" for CHANGELOG links (default: samuelb/gibbon)
+#   repo-slug GitHub "owner/name" for CHANGELOG links (default: samuelb/whirr)
 #   date      release date YYYY-MM-DD (default: today, UTC)
 set -eu
 
 version="${1:?version required (X.Y.Z, no leading v)}"
-repo="${2:-samuelb/gibbon}"
+repo="${2:-samuelb/whirr}"
 date="${3:-$(date -u +%F)}"
 tmp="$(mktemp)"
 
@@ -23,9 +23,9 @@ awk -v ver="$version" '
   { print }
 ' Cargo.toml > "$tmp" && mv "$tmp" Cargo.toml
 
-# --- Cargo.lock: bump the gibbon package entry so --locked builds still pass ---
+# --- Cargo.lock: bump the whirr package entry so --locked builds still pass ---
 awk -v ver="$version" '
-  $0 == "name = \"gibbon\"" { in_pkg = 1 }
+  $0 == "name = \"whirr\"" { in_pkg = 1 }
   in_pkg && /^version[[:space:]]*=/ { sub(/"[^"]*"/, "\"" ver "\""); in_pkg = 0 }
   { print }
 ' Cargo.lock > "$tmp" && mv "$tmp" Cargo.lock

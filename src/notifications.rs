@@ -35,7 +35,7 @@ pub fn song_changed(title: &str) {
 /// "use_default"`. There is no app named `use_default`, so macOS pops a "Choose
 /// Application" dialog. Setting our identifier up front consumes that one-time
 /// initialisation and skips the lookup. Best-effort: it returns an error when
-/// Gibbon is not a registered app (e.g. under `cargo run`), which is harmless —
+/// Whirr is not a registered app (e.g. under `cargo run`), which is harmless —
 /// the dialog is suppressed either way.
 #[cfg(target_os = "macos")]
 fn register_application() {

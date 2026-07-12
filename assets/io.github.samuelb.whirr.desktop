@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=Gibbon
+Name=Whirr
 GenericName=Internet Radio Player
 Comment=System-tray player for internet radio (MP3) streams
-Exec=gibbon
-Icon=io.github.samuelb.gibbon
+Exec=whirr
+Icon=io.github.samuelb.whirr
 Terminal=false
 Categories=AudioVideo;Audio;Player;
 Keywords=radio;stream;music;mp3;

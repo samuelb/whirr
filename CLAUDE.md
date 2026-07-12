@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Gibbon is a tiny, cross-platform (Linux/macOS/Windows) system-tray player for
+Whirr is a tiny, cross-platform (Linux/macOS/Windows) system-tray player for
 internet radio (MP3) streams, written in Rust. It has no windowed UI — just a tray
 icon, its menu, OS media-control integration, and one native stream-URL dialog.
 The stream to play is set via the "Set stream URL…" menu item (persisted as

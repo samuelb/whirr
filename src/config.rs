@@ -7,20 +7,20 @@ use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 
 /// This project's repository (shown in the About entry).
-pub const REPO_URL: &str = "https://github.com/samuelb/gibbon";
+pub const REPO_URL: &str = "https://github.com/samuelb/whirr";
 /// The application's name, shown to the OS for media controls / the login item.
-pub const APP_DISPLAY_NAME: &str = "Gibbon";
+pub const APP_DISPLAY_NAME: &str = "Whirr";
 /// Reverse-DNS application identifier (bundle id / desktop file base name).
 /// Used by packaging (bundle id, icon/desktop file names) and as the desktop
 /// notification icon name (matches the installed hicolor icon on Linux).
-pub const APP_ID: &str = "io.github.samuelb.gibbon";
+pub const APP_ID: &str = "io.github.samuelb.whirr";
 /// D-Bus well-known name element used for the MPRIS interface on Linux.
-pub const DBUS_NAME: &str = "gibbon";
+pub const DBUS_NAME: &str = "whirr";
 /// User-Agent sent when connecting to the stream.
 pub const USER_AGENT: &str = concat!(
-    "gibbon/",
+    "whirr/",
     env!("CARGO_PKG_VERSION"),
-    " (+https://github.com/samuelb/gibbon)"
+    " (+https://github.com/samuelb/whirr)"
 );
 
 /// Comment block written above the config when no stream URL is set yet,
@@ -72,7 +72,7 @@ impl Default for Config {
 impl Config {
     /// Path to the on-disk config file, if a config directory can be determined.
     pub fn path() -> Option<PathBuf> {
-        ProjectDirs::from("io.github", "samuelb", "gibbon")
+        ProjectDirs::from("io.github", "samuelb", "whirr")
             .map(|dirs| dirs.config_dir().join("config.toml"))
     }
 

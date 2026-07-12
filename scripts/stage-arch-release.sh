@@ -3,7 +3,7 @@ set -eu
 
 version="${1:?version required}"
 out_dir="${2:-dist}"
-pkgname="gibbon"
+pkgname="whirr"
 tarball="$pkgname-$version.tar.gz"
 
 mkdir -p "$out_dir"
@@ -16,7 +16,7 @@ else
 fi
 
 sed \
-    -e "s|^source=.*|source=(\"\$pkgname-\$pkgver.tar.gz::https://github.com/samuelb/gibbon/releases/download/v\$pkgver/\$pkgname-\$pkgver.tar.gz\")|" \
+    -e "s|^source=.*|source=(\"\$pkgname-\$pkgver.tar.gz::https://github.com/samuelb/whirr/releases/download/v\$pkgver/\$pkgname-\$pkgver.tar.gz\")|" \
     -e "s|^sha256sums=.*|sha256sums=('$checksum')|" \
     packaging/arch/PKGBUILD > "$out_dir/PKGBUILD"
 

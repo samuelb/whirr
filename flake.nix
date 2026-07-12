@@ -1,5 +1,5 @@
 {
-  description = "gibbon — system-tray player for internet radio (MP3) streams";
+  description = "whirr — system-tray player for internet radio (MP3) streams";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -31,8 +31,8 @@
             AppKit AudioToolbox AudioUnit CoreAudio MediaPlayer
           ]);
 
-        gibbon = pkgs.rustPlatform.buildRustPackage {
-          pname = "gibbon";
+        whirr = pkgs.rustPlatform.buildRustPackage {
+          pname = "whirr";
           version = "0.3.0";
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
@@ -44,32 +44,32 @@
           doCheck = true;
 
           postInstall = pkgs.lib.optionalString pkgs.stdenv.isLinux ''
-            install -Dm0644 assets/icons/gibbon.png \
-              "$out/share/icons/hicolor/256x256/apps/io.github.samuelb.gibbon.png"
-            install -Dm0644 assets/io.github.samuelb.gibbon.desktop \
-              "$out/share/applications/io.github.samuelb.gibbon.desktop"
+            install -Dm0644 assets/icons/whirr.png \
+              "$out/share/icons/hicolor/256x256/apps/io.github.samuelb.whirr.png"
+            install -Dm0644 assets/io.github.samuelb.whirr.desktop \
+              "$out/share/applications/io.github.samuelb.whirr.desktop"
           '';
 
           meta = with pkgs.lib; {
             description = "System-tray player for internet radio (MP3) streams";
-            homepage = "https://github.com/samuelb/gibbon";
+            homepage = "https://github.com/samuelb/whirr";
             license = licenses.mit;
-            mainProgram = "gibbon";
+            mainProgram = "whirr";
             platforms = platforms.unix;
           };
         };
       in
       {
-        packages.default = gibbon;
-        packages.gibbon = gibbon;
+        packages.default = whirr;
+        packages.whirr = whirr;
 
         apps.default = flake-utils.lib.mkApp {
-          drv = gibbon;
-          name = "gibbon";
+          drv = whirr;
+          name = "whirr";
         };
 
         devShells.default = pkgs.mkShell {
-          inputsFrom = [ gibbon ];
+          inputsFrom = [ whirr ];
           nativeBuildInputs = nativeDeps ++ (with pkgs; [ rustc cargo clippy rustfmt rust-analyzer ]);
           inherit buildInputs;
         };

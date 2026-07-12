@@ -8,7 +8,7 @@
 //! cancel. The callback may run on any thread; callers forward the result into
 //! the event loop via an [`tao::event_loop::EventLoopProxy`].
 
-const TITLE: &str = "Gibbon";
+const TITLE: &str = "Whirr";
 
 fn prompt_text(invalid: bool) -> &'static str {
     if invalid {

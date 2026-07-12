@@ -16,7 +16,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- Gibbon is now a general-purpose stream player: there is no built-in default
+- The project was renamed from **Gibbon** to **Whirr**. This changes the binary
+  name (`whirr`), the app identifier (`io.github.samuelb.whirr`), the config
+  directory, package names, and the repository URL
+  (<https://github.com/samuelb/whirr>). Existing installs keep working, but a
+  previous Gibbon config file is not migrated — set the stream URL once more
+  after upgrading.
+- Whirr is now a general-purpose stream player: there is no built-in default
   station anymore. The MP3 stream to play is set via the new **Set stream
   URL…** tray menu item, which opens a native dialog and applies the new URL
   immediately (it is persisted to `stream_url` in the config file). On a fresh
@@ -47,8 +53,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - GitHub Actions CI (fmt/clippy/test on Linux, macOS, Windows) and multi-platform
   release pipeline.
 
-[Unreleased]: https://github.com/samuelb/gibbon/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/samuelb/gibbon/releases/tag/v0.3.0
-[0.2.0]: https://github.com/samuelb/gibbon/releases/tag/v0.2.0
-[0.1.1]: https://github.com/samuelb/gibbon/releases/tag/v0.1.1
-[0.1.0]: https://github.com/samuelb/gibbon/releases/tag/v0.1.0
+[Unreleased]: https://github.com/samuelb/whirr/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/samuelb/whirr/releases/tag/v0.3.0
+[0.2.0]: https://github.com/samuelb/whirr/releases/tag/v0.2.0
+[0.1.1]: https://github.com/samuelb/whirr/releases/tag/v0.1.1
+[0.1.0]: https://github.com/samuelb/whirr/releases/tag/v0.1.0

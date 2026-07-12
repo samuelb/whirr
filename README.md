@@ -1,4 +1,4 @@
-# 📻 Gibbon
+# 📻 Whirr
 
 A tiny, native **system-tray player** for internet radio (MP3) streams. Point it
 at any http(s) MP3 stream, then one click to play or pause, hover to see the
@@ -36,12 +36,12 @@ automatic reconnect — written in Rust, packaged for every major desktop.
 ## Installation
 
 > Download the assets for your platform from the
-> [latest release](https://github.com/samuelb/gibbon/releases/latest).
+> [latest release](https://github.com/samuelb/whirr/releases/latest).
 
 ### Debian / Ubuntu (`.deb`)
 
 ```bash
-sudo apt install ./gibbon_*_amd64.deb      # or _arm64.deb
+sudo apt install ./whirr_*_amd64.deb      # or _arm64.deb
 ```
 
 Runtime dependencies (`libgtk-3`, `libayatana-appindicator3`, `libasound2`) are
@@ -50,7 +50,7 @@ pulled in automatically.
 ### Fedora / RHEL / openSUSE (`.rpm`)
 
 ```bash
-sudo dnf install ./gibbon-*.x86_64.rpm     # or .aarch64.rpm
+sudo dnf install ./whirr-*.x86_64.rpm     # or .aarch64.rpm
 ```
 
 ### Arch Linux
@@ -60,21 +60,21 @@ sudo dnf install ./gibbon-*.x86_64.rpm     # or .aarch64.rpm
 makepkg -si
 ```
 
-(An AUR package `gibbon` can be published from the same `PKGBUILD`.)
+(An AUR package `whirr` can be published from the same `PKGBUILD`.)
 
 ### Nix / NixOS
 
 ```bash
 # run without installing
-nix run github:samuelb/gibbon
+nix run github:samuelb/whirr
 
 # or add to a flake and install packages.default
-nix profile install github:samuelb/gibbon
+nix profile install github:samuelb/whirr
 ```
 
 ### macOS
 
-1. Download `gibbon-macos.dmg`, open it, and drag **Gibbon** to *Applications*.
+1. Download `whirr-macos.dmg`, open it, and drag **Whirr** to *Applications*.
 2. On first launch, right-click the app and choose **Open** (the build is
    ad-hoc signed; a Developer ID signature can be added in CI).
 
@@ -82,16 +82,16 @@ The app runs as a menu-bar item with no Dock icon.
 
 ### Windows
 
-- **Installer:** run `gibbon-setup-<version>.exe` (adds a Start-menu
+- **Installer:** run `whirr-setup-<version>.exe` (adds a Start-menu
   shortcut and an uninstaller).
-- **Portable:** just run `gibbon-windows-x64.exe`.
+- **Portable:** just run `whirr-windows-x64.exe`.
 
 ### From source (any platform)
 
 ```bash
 cargo install --path .
 # or
-cargo build --release   # binary at target/release/gibbon
+cargo build --release   # binary at target/release/whirr
 ```
 
 **Linux build dependencies:**
@@ -104,13 +104,13 @@ sudo apt-get install libgtk-3-dev libayatana-appindicator3-dev libasound2-dev pk
 
 ## Usage
 
-Launch **Gibbon** (from your app launcher or the command line). A tray icon
+Launch **Whirr** (from your app launcher or the command line). A tray icon
 appears.
 
 **First run:** no stream is configured yet, so the tray shows *No stream URL
 configured*. Choose **Set stream URL…** from the tray menu, enter the URL of
 the MP3 stream you want to play, and playback starts right away. On later
-launches Gibbon starts playing automatically by default.
+launches Whirr starts playing automatically by default.
 
 - **Left-click** the icon (Windows/macOS) to toggle play/pause.
 - **Right-click** (or left-click on Linux) opens the menu:
@@ -126,8 +126,8 @@ launches Gibbon starts playing automatically by default.
 ### Diagnostics
 
 ```bash
-gibbon --selftest      # connect, decode silently for ~10s, print status
-RUST_LOG=debug gibbon  # verbose logging
+whirr --selftest      # connect, decode silently for ~10s, print status
+RUST_LOG=debug whirr  # verbose logging
 ```
 
 ---
@@ -145,9 +145,9 @@ automatically within a couple of seconds, no restart needed. Location:
 
 | OS      | Path                                                              |
 | ------- | ---------------------------------------------------------------- |
-| Linux   | `~/.config/gibbon/config.toml`                              |
-| macOS   | `~/Library/Application Support/io.github.samuelb.gibbon/config.toml` |
-| Windows | `%APPDATA%\samuelb\gibbon\config\config.toml`                    |
+| Linux   | `~/.config/whirr/config.toml`                              |
+| macOS   | `~/Library/Application Support/io.github.samuelb.whirr/config.toml` |
+| Windows | `%APPDATA%\samuelb\whirr\config\config.toml`                    |
 
 ```toml
 # The http(s) MP3 stream to play. There is no default; set it here or via

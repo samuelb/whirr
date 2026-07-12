@@ -3,19 +3,19 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Gibbon</string>
+    <string>Whirr</string>
     <key>CFBundleDisplayName</key>
-    <string>Gibbon</string>
+    <string>Whirr</string>
     <key>CFBundleIdentifier</key>
-    <string>io.github.samuelb.gibbon</string>
+    <string>io.github.samuelb.whirr</string>
     <key>CFBundleVersion</key>
     <string>0.3.0</string>
     <key>CFBundleShortVersionString</key>
     <string>0.3.0</string>
     <key>CFBundleExecutable</key>
-    <string>gibbon</string>
+    <string>whirr</string>
     <key>CFBundleIconFile</key>
-    <string>gibbon.icns</string>
+    <string>whirr.icns</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>LSMinimumSystemVersion</key>
@@ -26,6 +26,6 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>Gibbon contributors. https://github.com/samuelb/gibbon</string>
+    <string>Whirr contributors. https://github.com/samuelb/whirr</string>
 </dict>
 </plist>

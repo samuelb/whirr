@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in improving **gibbon**!
+Thanks for your interest in improving **whirr**!
 
 ## Ground rules
 
