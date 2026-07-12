@@ -1,5 +1,5 @@
 cask "whirr" do
-  version "0.5.0"
+  version "0.5.1"
   # Release automation replaces this placeholder with the published .dmg checksum.
   sha256 "REPLACE_WITH_RELEASE_SHA256"
 
