@@ -2,7 +2,7 @@
 ; Build with:  makensis -DVERSION=0.1.0 -DSRCEXE=target\release\whirr.exe packaging\windows\installer.nsi
 
 !ifndef VERSION
-  !define VERSION "0.5.1"
+  !define VERSION "0.5.2"
 !endif
 !ifndef SRCEXE
   !define SRCEXE "..\..\target\release\whirr.exe"
