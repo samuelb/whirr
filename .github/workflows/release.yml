@@ -34,12 +34,12 @@ jobs:
             echo "::error::Tag '$tag' already exists"; exit 1
           fi
 
-      - name: Bump version and changelog
+      - name: Bump version
         id: bump
         env:
           TAG: ${{ inputs.tag }}
         run: |
-          sh scripts/bump-version.sh "${TAG#v}" "$GITHUB_REPOSITORY"
+          sh scripts/bump-version.sh "${TAG#v}"
           if git diff --quiet; then
             echo "::error::Nothing to bump — the project is already at ${TAG#v}."; exit 1
           fi

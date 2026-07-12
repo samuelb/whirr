@@ -35,19 +35,14 @@ cargo test --all-features
 - Keep changes focused; describe the *why* in the PR body.
 - Match the surrounding code style (the codebase is `rustfmt`-formatted).
 - Add or update tests for logic changes where practical.
-- For user-facing changes, add an entry to [CHANGELOG.md](CHANGELOG.md) under
-  *Unreleased*.
 
 ## Cutting a release (maintainers)
 
 Go to **Actions → Release → Run workflow** and enter the tag to create
 (e.g. `v0.2.0`). No manual tagging or version bumping is needed — the workflow:
 
-1. Bumps `version` in `Cargo.toml`/`Cargo.lock`, promotes the CHANGELOG's
-   *Unreleased* section to the new version, and commits that to the branch.
+1. Bumps `version` in `Cargo.toml`/`Cargo.lock` and the packaging files, and
+   commits that to the branch.
 2. Builds and packages for all platforms from that commit.
 3. Creates the tag and a GitHub Release with auto-generated notes listing every
    change since the previous release.
-
-Just collect user-facing changes under *Unreleased* in
-[CHANGELOG.md](CHANGELOG.md) between releases as usual.
