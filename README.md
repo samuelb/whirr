@@ -224,7 +224,9 @@ cargo run             # run locally
 - **CI** (`.github/workflows/ci.yml`): fmt, Clippy (warnings-as-errors) and tests
   on Linux, macOS and Windows for every push/PR.
 - **Release** (`.github/workflows/release.yml`): triggered manually
-  (workflow_dispatch) with the tag to cut. It bumps the version metadata,
+  (workflow_dispatch); the version is derived from the conventional commits
+  since the last release (override with the major/minor/patch `bump` input).
+  It bumps the version metadata,
   builds and publishes `.deb` + `.rpm` (amd64 & arm64, via nfpm), Linux binary
   tarballs, a universal macOS `.dmg` + binary tarball, a Windows installer +
   portable exe, a source tarball with a pinned Arch `PKGBUILD`, and a

@@ -27,7 +27,9 @@ scripts/bump-version.sh <X.Y.Z>             # bump version everywhere at once (u
 
 CI (`.github/workflows/ci.yml`) runs the version-metadata check, fmt, clippy, and tests
 on all three OSes for every push/PR. Releases are cut by manually dispatching the
-Release workflow with the `vX.Y.Z` tag to create.
+Release workflow; the next version is derived from conventional commits since the
+last tag via git-cliff (`--bump`), overridable with the `bump` input
+(auto/patch/minor/major).
 
 ## Version bumping (easy to get wrong)
 
@@ -44,7 +46,8 @@ the release pipeline renders a pinned copy per release.)
 
 Trunk-based development: all commits always go to `main`. There are no long-lived
 feature branches — commit directly to `main` (releases are cut from it by the
-manually dispatched Release workflow, which creates the `vX.Y.Z` tag).
+manually dispatched Release workflow, which derives the next `vX.Y.Z` tag from
+the conventional commits and creates it).
 
 Write commit subjects as Conventional Commits — `feat:`, `fix:`, `perf:`,
 `refactor:`, `docs:`, `test:`, `chore:`, `ci:`, `build:` (with `!` for breaking

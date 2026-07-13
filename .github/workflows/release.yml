@@ -3,13 +3,22 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Release tag to create (e.g. v1.2.3)'
-        required: true
-        type: string
+      bump:
+        description: "Version bump (auto derives it from conventional commits)"
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+        default: auto
 
 permissions:
   contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
@@ -20,24 +29,46 @@ jobs:
     name: Prepare release
     runs-on: ubuntu-latest
     outputs:
+      tag: ${{ steps.cliff.outputs.version }}
       sha: ${{ steps.bump.outputs.sha }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Full history + tags: git-cliff derives the next version from
+          # conventional commits since the last tag.
+          fetch-depth: 0
 
-      - name: Validate tag
+      - name: Compute next version and release notes
+        id: cliff
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --bump=${{ inputs.bump }} --unreleased
+        env:
+          OUTPUT: release-notes.md
+
+      - name: Validate computed tag
+        env:
+          TAG: ${{ steps.cliff.outputs.version }}
         run: |
-          tag="${{ inputs.tag }}"
-          if ! printf '%s' "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "::error::Tag '$tag' must look like vX.Y.Z"; exit 1
+          echo "Next version: $TAG"
+          if ! printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::git-cliff computed '$TAG', expected vX.Y.Z"; exit 1
           fi
-          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
-            echo "::error::Tag '$tag' already exists"; exit 1
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag '$TAG' already exists — nothing releasable since the last release?"; exit 1
           fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
 
       - name: Bump version
         id: bump
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ steps.cliff.outputs.version }}
         run: |
           sh scripts/bump-version.sh "${TAG#v}"
           if git diff --quiet; then
@@ -159,7 +190,7 @@ jobs:
       - name: Build installer (NSIS)
         shell: pwsh
         run: |
-          $version = "${{ inputs.tag }}" -replace '^v',''
+          $version = "${{ needs.prepare.outputs.tag }}" -replace '^v',''
           # The script's File/icon paths are relative to packaging\windows.
           Push-Location packaging\windows
           makensis "/DVERSION=$version" installer.nsi
@@ -183,13 +214,19 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ needs.prepare.outputs.sha }}
-          # Full history + tags so the notes step can diff against the last tag.
-          fetch-depth: 0
 
       - uses: actions/download-artifact@v4
         with:
+          # Only the build outputs — the release-notes artifact must not end
+          # up in dist/ (it would be checksummed and released).
+          pattern: dist-*
           path: dist
           merge-multiple: true
+
+      - name: Download release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
 
       - name: Install nfpm
         env:
@@ -201,7 +238,7 @@ jobs:
 
       - name: Build .deb and .rpm packages
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           export NFPM_VERSION="${TAG#v}"
           for arch in amd64 arm64; do
@@ -219,7 +256,7 @@ jobs:
           version="${TAG#v}"
           sh scripts/stage-arch-release.sh "$version" dist
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ needs.prepare.outputs.tag }}
 
       - name: Generate checksums
         run: (cd dist && sha256sum -- * > ../checksums.txt && mv ../checksums.txt .)
@@ -230,20 +267,12 @@ jobs:
           path: dist/checksums.txt
           if-no-files-found: error
 
-      - name: Build release notes
-        uses: orhun/git-cliff-action@v4
-        with:
-          config: cliff.toml
-          args: --unreleased --tag ${{ inputs.tag }}
-        env:
-          OUTPUT: release-notes.md
-
       - name: Show release notes
         run: cat release-notes.md
 
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
           target_commitish: ${{ needs.prepare.outputs.sha }}
           body_path: release-notes.md
           make_latest: true
@@ -272,7 +301,7 @@ jobs:
 
       - name: Render tap files
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ needs.prepare.outputs.tag }}
         run: sh scripts/stage-homebrew.sh "${TAG#v}" checksums.txt rendered
 
       - uses: actions/upload-artifact@v4
@@ -283,10 +312,10 @@ jobs:
 
   publish-homebrew:
     name: Publish Homebrew tap
-    needs: homebrew
+    needs: [prepare, homebrew]
     uses: samuelb/homebrew-tap/.github/workflows/publish.yml@main
     with:
       artifact_name: homebrew-tap-files
-      commit_message: "whirr ${{ inputs.tag }}"
+      commit_message: "whirr ${{ needs.prepare.outputs.tag }}"
     secrets:
       tap_token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
