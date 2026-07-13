@@ -1,0 +1,47 @@
+# nfpm (https://nfpm.goreleaser.com) config for the .deb and .rpm packages.
+# The release workflow sets NFPM_VERSION, NFPM_ARCH (amd64|arm64) and
+# NFPM_BINARY (path to the built whirr binary for that arch), then runs
+#   nfpm package -f packaging/nfpm.yaml -p deb|rpm -t dist/<file>
+name: whirr
+arch: ${NFPM_ARCH}
+platform: linux
+version: ${NFPM_VERSION}
+section: sound
+priority: optional
+maintainer: Whirr contributors <samuelb@users.noreply.github.com>
+description: |
+  System-tray player for internet radio (MP3) streams
+  A lightweight system-tray player for internet radio (MP3) streams. Plays a
+  user-configured stream URL with one-click play/pause, now-playing tooltip,
+  MPRIS and media-key integration, and automatic reconnect.
+homepage: https://github.com/samuelb/whirr
+license: MIT
+overrides:
+  deb:
+    depends:
+      - libgtk-3-0
+      - libayatana-appindicator3-1
+      - libasound2 | libasound2t64
+  rpm:
+    depends:
+      - gtk3
+      - libappindicator-gtk3
+      - alsa-lib
+contents:
+  - src: ${NFPM_BINARY}
+    dst: /usr/bin/whirr
+    expand: true
+    file_info:
+      mode: 0755
+  - src: assets/icons/whirr.png
+    dst: /usr/share/icons/hicolor/256x256/apps/io.github.samuelb.whirr.png
+  - src: assets/io.github.samuelb.whirr.desktop
+    dst: /usr/share/applications/io.github.samuelb.whirr.desktop
+  - src: README.md
+    dst: /usr/share/doc/whirr/README.md
+  - src: LICENSE-MIT
+    dst: /usr/share/doc/whirr/copyright
+    packager: deb
+  - src: LICENSE-MIT
+    dst: /usr/share/licenses/whirr/LICENSE
+    packager: rpm

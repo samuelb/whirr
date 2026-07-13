@@ -29,11 +29,11 @@ automatic reconnect — written in Rust, packaged for every major desktop.
 
 ## Supported platforms
 
-| OS      | Architectures            | Packages                                    |
-| ------- | ------------------------ | ------------------------------------------- |
-| Linux   | `x86_64`, `aarch64`      | `.deb`, `.rpm`, Arch `PKGBUILD`, Nix flake  |
-| macOS   | Apple Silicon + Intel    | universal `.dmg` (`.app` bundle)            |
-| Windows | `x86_64`                 | NSIS installer `.exe` + portable `.exe`     |
+| OS      | Architectures            | Packages                                              |
+| ------- | ------------------------ | ----------------------------------------------------- |
+| Linux   | `x86_64`, `aarch64`      | `.deb`, `.rpm`, Homebrew, Arch `PKGBUILD`, Nix flake  |
+| macOS   | Apple Silicon + Intel    | universal `.dmg` (`.app`), Homebrew cask + formula    |
+| Windows | `x86_64`                 | NSIS installer `.exe` + portable `.exe`               |
 
 ---
 
@@ -45,7 +45,7 @@ automatic reconnect — written in Rust, packaged for every major desktop.
 ### Debian / Ubuntu (`.deb`)
 
 ```bash
-sudo apt install ./whirr_*_amd64.deb      # or _arm64.deb
+sudo apt install ./whirr_*_linux_amd64.deb      # or _arm64.deb
 ```
 
 Runtime dependencies (`libgtk-3`, `libayatana-appindicator3`, `libasound2`) are
@@ -56,6 +56,15 @@ pulled in automatically.
 ```bash
 sudo dnf install ./whirr-*.x86_64.rpm     # or .aarch64.rpm
 ```
+
+### Homebrew (Linux and macOS)
+
+```bash
+brew install samuelb/tap/whirr
+```
+
+Installs the plain `whirr` binary from the latest release. On macOS the
+`--cask` variant below gives you a proper `.app` in *Applications* instead.
 
 ### Arch Linux
 
@@ -214,15 +223,15 @@ cargo run             # run locally
 
 - **CI** (`.github/workflows/ci.yml`): fmt, Clippy (warnings-as-errors) and tests
   on Linux, macOS and Windows for every push/PR.
-- **Release** (`.github/workflows/release.yml`): pushing a `vX.Y.Z` tag builds and
-  publishes `.deb` + `.rpm` (amd64 & arm64), a universal macOS `.dmg`, and a
-  Windows installer + portable exe, each with `SHA256SUMS`. It then refreshes the
-  [Homebrew cask](https://github.com/samuelb/homebrew-tap) (requires a
-  `HOMEBREW_TAP_TOKEN` repo secret with write access to the tap).
-
-```bash
-git tag v0.1.0 && git push origin v0.1.0    # cut a release
-```
+- **Release** (`.github/workflows/release.yml`): triggered manually
+  (workflow_dispatch) with the tag to cut. It bumps the version metadata,
+  builds and publishes `.deb` + `.rpm` (amd64 & arm64, via nfpm), Linux binary
+  tarballs, a universal macOS `.dmg` + binary tarball, a Windows installer +
+  portable exe, a source tarball with a pinned Arch `PKGBUILD`, and a
+  consolidated `checksums.txt`. It then refreshes the
+  [Homebrew tap](https://github.com/samuelb/homebrew-tap) — cask and formula —
+  via the tap's reusable publish workflow (requires a `HOMEBREW_TAP_TOKEN`
+  repo secret with write access to the tap).
 
 ---
 

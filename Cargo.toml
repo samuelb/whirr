@@ -70,39 +70,7 @@ panic = "abort"
 # Packaging metadata
 # ---------------------------------------------------------------------------
 
-# cargo-deb (Debian/Ubuntu .deb)
-[package.metadata.deb]
-maintainer = "Whirr contributors"
-copyright = "2026, Whirr contributors"
-license-file = ["LICENSE-MIT", "0"]
-extended-description = """\
-A lightweight system-tray player for internet radio (MP3) streams. \
-Plays a user-configured stream URL with one-click play/pause, now-playing \
-tooltip, MPRIS and media-key integration, and automatic reconnect."""
-section = "sound"
-priority = "optional"
-depends = "$auto, libgtk-3-0, libayatana-appindicator3-1, libasound2"
-assets = [
-    ["target/release/whirr", "usr/bin/", "755"],
-    ["assets/icons/whirr.png", "usr/share/icons/hicolor/256x256/apps/io.github.samuelb.whirr.png", "644"],
-    ["assets/io.github.samuelb.whirr.desktop", "usr/share/applications/", "644"],
-    ["README.md", "usr/share/doc/whirr/README.md", "644"],
-]
-
-# cargo-generate-rpm (Fedora/RHEL/openSUSE .rpm)
-[package.metadata.generate-rpm]
-summary = "System-tray player for internet radio (MP3) streams"
-license = "MIT"
-assets = [
-    { source = "target/release/whirr", dest = "/usr/bin/whirr", mode = "755" },
-    { source = "assets/icons/whirr.png", dest = "/usr/share/icons/hicolor/256x256/apps/io.github.samuelb.whirr.png", mode = "644" },
-    { source = "assets/io.github.samuelb.whirr.desktop", dest = "/usr/share/applications/io.github.samuelb.whirr.desktop", mode = "644" },
-    { source = "README.md", dest = "/usr/share/doc/whirr/README.md", mode = "644" },
-]
-[package.metadata.generate-rpm.requires]
-gtk3 = "*"
-libappindicator-gtk3 = "*"
-alsa-lib = "*"
+# .deb and .rpm packages are built with nfpm — see packaging/nfpm.yaml.
 
 # cargo-bundle (macOS .app / .dmg convenience — CI uses the manual bundler in packaging/macos)
 [package.metadata.bundle]

@@ -13,7 +13,6 @@ check() {
 }
 
 check "flake.nix" "$(sed -n 's/^[[:space:]]*version = "\(.*\)";/\1/p' flake.nix | head -n 1)"
-check "PKGBUILD" "$(sed -n 's/^pkgver=//p' packaging/arch/PKGBUILD | head -n 1)"
 check "NSIS" "$(sed -n 's/^[[:space:]]*!define VERSION "\(.*\)"/\1/p' packaging/windows/installer.nsi | head -n 1)"
 check "Info.plist CFBundleVersion" "$(
     awk '
@@ -25,6 +24,7 @@ check "Info.plist CFBundleShortVersionString" "$(
         /<key>CFBundleShortVersionString<\/key>/ { getline; gsub(/^[[:space:]]*<string>|<\/string>[[:space:]]*$/, ""); print; exit }
     ' packaging/macos/Info.plist
 )"
-check "Homebrew cask" "$(sed -n 's/^[[:space:]]*version "\(.*\)"/\1/p' packaging/homebrew/whirr.rb | head -n 1)"
+check "Homebrew cask" "$(sed -n 's/^[[:space:]]*version "\(.*\)"/\1/p' packaging/homebrew/Casks/whirr.rb | head -n 1)"
+check "Homebrew formula" "$(sed -n 's/^[[:space:]]*version "\(.*\)"/\1/p' packaging/homebrew/Formula/whirr.rb | head -n 1)"
 
 echo "version metadata matches $version"

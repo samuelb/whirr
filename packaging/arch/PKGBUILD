@@ -1,5 +1,11 @@
 # Maintainer: Whirr contributors
 # System-tray player for internet radio (MP3) streams.
+#
+# The committed copy of this file is a generic VCS build: latest git state,
+# version derived from `git describe`, checksum SKIP. The release pipeline
+# (scripts/stage-arch-release.sh) renders a pinned copy -- fixed pkgver,
+# release-tarball source, real checksum -- and attaches it to each GitHub
+# release.
 pkgname=whirr
 pkgver=0.5.2
 pkgrel=1
@@ -8,32 +14,36 @@ arch=('x86_64' 'aarch64')
 url="https://github.com/samuelb/whirr"
 license=('MIT')
 depends=('gtk3' 'libayatana-appindicator' 'alsa-lib')
-makedepends=('rust' 'cargo')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/samuelb/whirr/releases/download/v$pkgver/$pkgname-$pkgver.tar.gz")
-# Release automation replaces this placeholder in the published PKGBUILD.
-sha256sums=('REPLACE_WITH_RELEASE_SHA256')
+makedepends=('rust' 'cargo' 'git')
+source=("$pkgname::git+$url.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "$pkgname"
+    git describe --long --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
 
 prepare() {
-    cd "$pkgname-$pkgver"
+    cd "$pkgname"
     export RUSTUP_TOOLCHAIN=stable
     cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
 }
 
 build() {
-    cd "$pkgname-$pkgver"
+    cd "$pkgname"
     export RUSTUP_TOOLCHAIN=stable
     export CARGO_TARGET_DIR=target
     cargo build --frozen --release --all-features
 }
 
 check() {
-    cd "$pkgname-$pkgver"
+    cd "$pkgname"
     export RUSTUP_TOOLCHAIN=stable
     cargo test --frozen --release
 }
 
 package() {
-    cd "$pkgname-$pkgver"
+    cd "$pkgname"
     install -Dm0755 "target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
     install -Dm0644 "assets/icons/whirr.png" \
         "$pkgdir/usr/share/icons/hicolor/256x256/apps/io.github.samuelb.whirr.png"

@@ -1,8 +1,10 @@
 #!/usr/bin/env sh
 # Bump the project to a release version across every file the CI version check
 # (scripts/check-version-metadata.sh) guards: Cargo.toml, Cargo.lock,
-# flake.nix, the Arch PKGBUILD, the NSIS installer, the macOS Info.plist and
-# the Homebrew cask. Keep the patterns below in sync with that check.
+# flake.nix, the NSIS installer, the macOS Info.plist and the Homebrew
+# cask/formula templates. Keep the patterns below in sync with that check.
+# (The Arch PKGBUILD is deliberately not bumped: it is a generic VCS build
+# whose version comes from `git describe` at build time.)
 # Usage: bump-version.sh <version>
 #   version   release version without a leading "v" (e.g. 1.2.3)
 set -eu
@@ -34,13 +36,6 @@ awk -v ver="$version" '
   { print }
 ' flake.nix > "$tmp" && mv "$tmp" flake.nix
 
-# --- Arch PKGBUILD: bump pkgver and reset pkgrel for the new upstream version ---
-awk -v ver="$version" '
-  /^pkgver=/ { print "pkgver=" ver; next }
-  /^pkgrel=/ { print "pkgrel=1"; next }
-  { print }
-' packaging/arch/PKGBUILD > "$tmp" && mv "$tmp" packaging/arch/PKGBUILD
-
 # --- NSIS installer: bump the VERSION define ---
 awk -v ver="$version" '
   !done && /^[[:space:]]*!define VERSION "[^"]*"/ {
@@ -56,12 +51,14 @@ awk -v ver="$version" '
   { print }
 ' packaging/macos/Info.plist > "$tmp" && mv "$tmp" packaging/macos/Info.plist
 
-# --- Homebrew cask: bump the version stanza ---
-awk -v ver="$version" '
-  !done && /^[[:space:]]*version "[^"]*"/ {
-    sub(/"[^"]*"/, "\"" ver "\""); done = 1
-  }
-  { print }
-' packaging/homebrew/whirr.rb > "$tmp" && mv "$tmp" packaging/homebrew/whirr.rb
+# --- Homebrew cask and formula templates: bump the version stanza ---
+for rb in packaging/homebrew/Casks/whirr.rb packaging/homebrew/Formula/whirr.rb; do
+    awk -v ver="$version" '
+      !done && /^[[:space:]]*version "[^"]*"/ {
+        sub(/"[^"]*"/, "\"" ver "\""); done = 1
+      }
+      { print }
+    ' "$rb" > "$tmp" && mv "$tmp" "$rb"
+done
 
 echo "bumped to $version"

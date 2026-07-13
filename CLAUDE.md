@@ -26,20 +26,30 @@ scripts/bump-version.sh <X.Y.Z>             # bump version everywhere at once (u
 ```
 
 CI (`.github/workflows/ci.yml`) runs the version-metadata check, fmt, clippy, and tests
-on all three OSes for every push/PR. Releases are cut by pushing a `vX.Y.Z` tag.
+on all three OSes for every push/PR. Releases are cut by manually dispatching the
+Release workflow with the `vX.Y.Z` tag to create.
 
 ## Version bumping (easy to get wrong)
 
 The version lives in **many files** and CI fails if they drift: `Cargo.toml`, `flake.nix`,
-`packaging/arch/PKGBUILD`, `packaging/windows/installer.nsi`, and both `CFBundleVersion`
-and `CFBundleShortVersionString` in `packaging/macos/Info.plist`. Always use
-`scripts/bump-version.sh` and confirm with `check-version-metadata.sh` — never edit
-`Cargo.toml`'s version alone.
+`packaging/windows/installer.nsi`, both `CFBundleVersion` and
+`CFBundleShortVersionString` in `packaging/macos/Info.plist`, and the Homebrew
+templates `packaging/homebrew/Casks/whirr.rb` and `packaging/homebrew/Formula/whirr.rb`.
+Always use `scripts/bump-version.sh` and confirm with `check-version-metadata.sh` — never
+edit `Cargo.toml`'s version alone. (`packaging/arch/PKGBUILD` is deliberately
+versionless: it is a generic VCS build whose version comes from `git describe`;
+the release pipeline renders a pinned copy per release.)
 
 ## Branching
 
 Trunk-based development: all commits always go to `main`. There are no long-lived
-feature branches — commit directly to `main` (releases are cut by tagging `vX.Y.Z` on it).
+feature branches — commit directly to `main` (releases are cut from it by the
+manually dispatched Release workflow, which creates the `vX.Y.Z` tag).
+
+Write commit subjects as Conventional Commits — `feat:`, `fix:`, `perf:`,
+`refactor:`, `docs:`, `test:`, `chore:`, `ci:`, `build:` (with `!` for breaking
+changes). Release notes are generated from them by git-cliff (`cliff.toml`);
+unprefixed commits still appear, but only under a generic "Other" heading.
 
 ## Architecture
 
