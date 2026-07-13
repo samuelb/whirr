@@ -1,6 +1,6 @@
 [package]
 name = "whirr"
-version = "0.5.3"
+version = "0.5.4"
 edition = "2021"
 rust-version = "1.89"
 description = "A tiny system-tray player for internet radio (MP3) streams."
