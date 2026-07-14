@@ -137,8 +137,8 @@ appears.
 **First run:** no stream is configured yet, so the tray shows *No stream URL
 configured*. Choose **Set stream URL…** from the tray menu, enter the URL of
 the MP3 or AAC stream (or a `.pls` playlist pointing at one) you want to play,
-and playback starts right away. On later
-launches Whirr starts playing automatically by default.
+and playback starts right away. To also start playing automatically on later
+launches, enable **Autoplay on startup** in the menu.
 
 - **Left-click** the icon (Windows/macOS) to toggle play/pause.
 - **Right-click** (or left-click on Linux) opens the menu:
