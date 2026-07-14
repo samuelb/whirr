@@ -13,6 +13,9 @@ pkgdesc="System-tray player for internet radio (MP3) streams"
 arch=('x86_64' 'aarch64')
 url="https://github.com/samuelb/whirr"
 license=('MIT')
+# ring's C sources can't be built with makepkg's default LTO (-flto=auto
+# produces GCC bitcode objects that rustc's linker can't read).
+options=(!lto)
 depends=('gtk3' 'libayatana-appindicator' 'alsa-lib')
 makedepends=('rust' 'cargo' 'git')
 source=("$pkgname::git+$url.git")
