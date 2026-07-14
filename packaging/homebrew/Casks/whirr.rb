@@ -5,7 +5,7 @@ cask "whirr" do
 
   url "https://github.com/samuelb/whirr/releases/download/v#{version}/whirr-macos.dmg"
   name "Whirr"
-  desc "Tiny system-tray player for internet radio (MP3) streams"
+  desc "Tiny system-tray player for internet radio (MP3/AAC) streams"
   homepage "https://github.com/samuelb/whirr"
 
   depends_on macos: :catalina

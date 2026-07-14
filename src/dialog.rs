@@ -24,13 +24,13 @@ pub enum Reason {
 
 fn prompt_text(reason: Reason) -> &'static str {
     match reason {
-        Reason::Configure => "Enter the URL of the MP3 stream to play:",
+        Reason::Configure => "Enter the URL of the MP3/AAC stream to play:",
         Reason::InvalidInput => {
-            "That is not a valid http(s) URL.\nEnter the URL of the MP3 stream to play:"
+            "That is not a valid http(s) URL.\nEnter the URL of the MP3/AAC stream to play:"
         }
         Reason::PlayRequested => {
             "No stream URL is configured, so there is nothing to play yet.\n\
-             Enter the URL of the MP3 stream to play:"
+             Enter the URL of the MP3/AAC stream to play:"
         }
     }
 }

@@ -1,5 +1,5 @@
 # Maintainer: Whirr contributors
-# System-tray player for internet radio (MP3) streams.
+# System-tray player for internet radio (MP3/AAC) streams.
 #
 # The committed copy of this file is a generic VCS build: latest git state,
 # version derived from `git describe`, checksum SKIP. The release pipeline
@@ -9,7 +9,7 @@
 pkgname=whirr
 pkgver=0.5.2
 pkgrel=1
-pkgdesc="System-tray player for internet radio (MP3) streams"
+pkgdesc="System-tray player for internet radio (MP3/AAC) streams"
 arch=('x86_64' 'aarch64')
 url="https://github.com/samuelb/whirr"
 license=('MIT')

@@ -3,7 +3,7 @@ name = "whirr"
 version = "0.5.5"
 edition = "2021"
 rust-version = "1.89"
-description = "A tiny system-tray player for internet radio (MP3) streams."
+description = "A tiny system-tray player for internet radio (MP3/AAC) streams."
 authors = ["Whirr contributors"]
 license = "MIT"
 repository = "https://github.com/samuelb/whirr"
@@ -18,7 +18,7 @@ name = "whirr"
 path = "src/main.rs"
 
 [dependencies]
-# Audio: pure-Rust HTTP streaming + MP3 decode + playback (no gstreamer dependency).
+# Audio: pure-Rust HTTP streaming + MP3/AAC decode + playback (no gstreamer dependency).
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
 rodio = { version = "0.20", default-features = false }
 symphonia = { version = "0.5", default-features = false, features = ["mp3", "aac"] }
@@ -80,5 +80,5 @@ icon = ["assets/icons/whirr.icns"]
 category = "Music"
 short_description = "System-tray player for internet radio streams."
 long_description = """\
-A lightweight system-tray player for internet radio (MP3) streams. \
+A lightweight system-tray player for internet radio (MP3/AAC) streams. \
 Plays a user-configured stream URL."""

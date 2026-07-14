@@ -1,4 +1,4 @@
-//! whirr — a tiny system-tray player for an internet radio (MP3) stream.
+//! whirr — a tiny system-tray player for an internet radio (MP3/AAC) stream.
 //!
 //! The stream to play is set via `stream_url` in the config file; there is
 //! no built-in default.

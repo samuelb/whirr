@@ -2,10 +2,10 @@
 Type=Application
 Name=Whirr
 GenericName=Internet Radio Player
-Comment=System-tray player for internet radio (MP3) streams
+Comment=System-tray player for internet radio (MP3/AAC) streams
 Exec=whirr
 Icon=io.github.samuelb.whirr
 Terminal=false
 Categories=AudioVideo;Audio;Player;
-Keywords=radio;stream;music;mp3;
+Keywords=radio;stream;music;mp3;aac;
 StartupNotify=false

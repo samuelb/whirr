@@ -1,4 +1,4 @@
-//! Audio engine: a pure-Rust pipeline that streams the configured MP3 feed,
+//! Audio engine: a pure-Rust pipeline that streams the configured radio feed,
 //! strips ICY metadata, decodes with Symphonia and plays through Rodio/CPAL.
 //!
 //! Design
@@ -410,8 +410,9 @@ where
     let source = Box::new(ChannelSource::new(rx, should_run.clone()));
     let mss = MediaSourceStream::new(source, Default::default());
 
-    let mut hint = Hint::new();
-    hint.mime_type("audio/mpeg");
+    // No format hint: the probe detects MP3 vs AAC (ADTS) from the bytes
+    // themselves, so the same pipeline handles both.
+    let hint = Hint::new();
 
     let probed = symphonia::default::get_probe()
         .format(

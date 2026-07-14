@@ -1,5 +1,5 @@
 class Whirr < Formula
-  desc "System-tray player for internet radio (MP3) streams"
+  desc "System-tray player for internet radio (MP3/AAC) streams"
   homepage "https://github.com/samuelb/whirr"
   version "0.5.5"
   license "MIT"

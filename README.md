@@ -4,8 +4,8 @@
 
 # Whirr
 
-A tiny, native **system-tray player** for internet radio (MP3) streams. Point it
-at any http(s) MP3 stream, then one click to play or pause, hover to see the
+A tiny, native **system-tray player** for internet radio (MP3/AAC) streams. Point
+it at any http(s) MP3 or AAC stream, then one click to play or pause, hover to see the
 current track, with proper OS media-control and media-key integration and
 automatic reconnect — written in Rust, packaged for every major desktop.
 
@@ -14,7 +14,8 @@ automatic reconnect — written in Rust, packaged for every major desktop.
 ## Features
 
 - ▶️ / ⏸️ **One-button play / pause** from the tray icon or its menu.
-- 🔗 **Bring your own stream** — plays any http(s) MP3 stream you configure.
+- 🔗 **Bring your own stream** — plays any http(s) MP3 or AAC stream you
+  configure (AAC-LC; HE-AAC/aacPlus is not supported).
 - 🎵 **Now-playing track** shown on hover (tray tooltip) and in the menu, parsed
   live from the stream's ICY metadata.
 - 🎛️ **System media controls** — MPRIS on Linux, System Media Transport Controls
@@ -134,7 +135,7 @@ appears.
 
 **First run:** no stream is configured yet, so the tray shows *No stream URL
 configured*. Choose **Set stream URL…** from the tray menu, enter the URL of
-the MP3 stream you want to play, and playback starts right away. On later
+the MP3 or AAC stream you want to play, and playback starts right away. On later
 launches Whirr starts playing automatically by default.
 
 - **Left-click** the icon (Windows/macOS) to toggle play/pause.
@@ -175,7 +176,7 @@ automatically within a couple of seconds, no restart needed. Location:
 | Windows | `%APPDATA%\whirr\config\config.toml`                       |
 
 ```toml
-# The http(s) MP3 stream to play. There is no default; set it here or via
+# The http(s) MP3/AAC stream to play. There is no default; set it here or via
 # the "Set stream URL…" tray menu item.
 stream_url = "https://example.com/stream.mp3"
 # Output volume, 0.0–1.0
@@ -197,9 +198,10 @@ autostart = false
      └─► auto-reconnect with backoff
 ```
 
-- **`reqwest`** streams the MP3 feed with `Icy-MetaData: 1`.
+- **`reqwest`** streams the radio feed with `Icy-MetaData: 1`.
 - **`icy`** splits interleaved metadata from audio and reports the `StreamTitle`.
-- **`symphonia`** decodes MP3 frames; **`rodio`**/**`cpal`** play them.
+- **`symphonia`** detects and decodes MP3 or AAC (ADTS) frames;
+  **`rodio`**/**`cpal`** play them.
 - **`souvlaki`** provides MPRIS / SMTC / MediaRemote and media keys.
 - **`tray-icon`** + **`tao`** provide the tray and event loop; **`auto-launch`**
   handles start-on-login.

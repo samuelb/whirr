@@ -1,5 +1,5 @@
 {
-  description = "whirr — system-tray player for internet radio (MP3) streams";
+  description = "whirr — system-tray player for internet radio (MP3/AAC) streams";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -51,7 +51,7 @@
           '';
 
           meta = with pkgs.lib; {
-            description = "System-tray player for internet radio (MP3) streams";
+            description = "System-tray player for internet radio (MP3/AAC) streams";
             homepage = "https://github.com/samuelb/whirr";
             license = licenses.mit;
             mainProgram = "whirr";
