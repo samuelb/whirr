@@ -33,7 +33,7 @@
 
         whirr = pkgs.rustPlatform.buildRustPackage {
           pname = "whirr";
-          version = "0.5.4";
+          version = "0.5.5";
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
 

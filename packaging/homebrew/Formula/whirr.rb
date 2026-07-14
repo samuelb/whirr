@@ -1,7 +1,7 @@
 class Whirr < Formula
   desc "System-tray player for internet radio (MP3) streams"
   homepage "https://github.com/samuelb/whirr"
-  version "0.5.4"
+  version "0.5.5"
   license "MIT"
 
   on_macos do
