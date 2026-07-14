@@ -44,8 +44,9 @@ pub fn is_valid_stream_url(s: &str) -> bool {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
-    /// The http(s) MP3/AAC stream to play. There is no default: the user must set
-    /// one in the config file before playback is possible.
+    /// The http(s) MP3/AAC stream — or `.pls` playlist pointing at one — to
+    /// play. There is no default: the user must set one in the config file
+    /// before playback is possible.
     pub stream_url: Option<String>,
     /// Output volume in the range `0.0..=1.0`.
     pub volume: f32,

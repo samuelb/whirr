@@ -43,6 +43,14 @@ use symphonia::core::probe::Hint;
 
 use crate::config::{Config, USER_AGENT};
 use crate::icy::IcyReader;
+use crate::playlist;
+
+/// How many nested playlists to follow before giving up (a `.pls` entry may
+/// itself point at another playlist).
+const MAX_PLAYLIST_DEPTH: usize = 3;
+/// Upper bound on how much of a playlist body to read before parsing it; real
+/// PLS files are at most a few kilobytes.
+const MAX_PLAYLIST_BYTES: u64 = 512 * 1024;
 
 /// Coarse playback state surfaced to the UI and media controls.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -344,13 +352,68 @@ where
         .build()
         .context("building HTTP client")?;
 
-    let response = client
-        .get(url)
-        .header("Icy-MetaData", "1")
-        .send()
-        .context("connecting to stream")?
-        .error_for_status()
-        .context("stream returned an error status")?;
+    let connect = |url: &str| -> Result<reqwest::blocking::Response> {
+        client
+            .get(url)
+            .header("Icy-MetaData", "1")
+            .send()
+            .context("connecting to stream")?
+            .error_for_status()
+            .context("stream returned an error status")
+    };
+
+    // A `.pls` playlist URL may stand in for a direct stream URL: when the
+    // response looks like one, fetch it and connect to its first usable entry
+    // instead. Resolving here means every (re)connect re-reads the playlist,
+    // so entry changes are picked up without user involvement.
+    let mut response = connect(url)?;
+    for depth in 0.. {
+        let content_type = response
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok());
+        if !playlist::looks_like_pls(response.url().path(), content_type) {
+            break;
+        }
+        if depth >= MAX_PLAYLIST_DEPTH {
+            return Err(anyhow!(
+                "playlists nested more than {MAX_PLAYLIST_DEPTH} levels deep"
+            ));
+        }
+        let base = response.url().clone();
+        let mut body = Vec::new();
+        response
+            .take(MAX_PLAYLIST_BYTES)
+            .read_to_end(&mut body)
+            .context("reading playlist")?;
+        let entries: Vec<_> = playlist::parse_pls(&String::from_utf8_lossy(&body))
+            .into_iter()
+            // Entries are normally absolute; joining also resolves relative
+            // ones against the playlist's own (post-redirect) URL.
+            .filter_map(|e| {
+                base.join(&e)
+                    .ok()
+                    .filter(|u| matches!(u.scheme(), "http" | "https"))
+            })
+            .collect();
+        if entries.is_empty() {
+            return Err(anyhow!("playlist contains no usable stream entry"));
+        }
+        // A playlist's entries are alternates for the same station: try them
+        // in order until one accepts the connection.
+        let mut connected = None;
+        for entry in entries {
+            match connect(entry.as_str()) {
+                Ok(r) => {
+                    log::info!("resolved playlist to {entry}");
+                    connected = Some(r);
+                    break;
+                }
+                Err(err) => log::warn!("playlist entry {entry} failed: {err:#}"),
+            }
+        }
+        response = connected.context("no playlist entry accepted the connection")?;
+    }
 
     let metaint = response
         .headers()

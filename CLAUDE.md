@@ -90,6 +90,12 @@ worker thread on macOS/Windows). `App` validates the input, saves the config, an
 hands the new URL to the running engine via `Player::set_stream_url`, which
 restarts the worker if playing — URL changes need no app restart.
 
+**PLS playlists (`src/playlist.rs`).** The configured URL may be a `.pls` playlist
+instead of a direct stream. Detection (by `.pls` path extension or `audio/x-scpls`
+content type) and parsing are pure and unit-tested here; the network side lives in
+`stream_session`, which resolves the playlist on every (re)connect and tries its
+entries in order until one accepts the connection (nesting capped at 3 levels).
+
 **ICY demux (`src/icy.rs`).** A `Read` adapter that strips interleaved SHOUTcast/Icecast
 metadata blocks (every `icy-metaint` bytes) from the audio and reports `StreamTitle` changes
 through a callback. Pure and unit-tested.

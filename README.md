@@ -15,7 +15,8 @@ automatic reconnect — written in Rust, packaged for every major desktop.
 
 - ▶️ / ⏸️ **One-button play / pause** from the tray icon or its menu.
 - 🔗 **Bring your own stream** — plays any http(s) MP3 or AAC stream you
-  configure (AAC-LC; HE-AAC/aacPlus is not supported).
+  configure (AAC-LC; HE-AAC/aacPlus is not supported). `.pls` playlist URLs
+  work too: the entries are tried in order until one connects.
 - 🎵 **Now-playing track** shown on hover (tray tooltip) and in the menu, parsed
   live from the stream's ICY metadata.
 - 🎛️ **System media controls** — MPRIS on Linux, System Media Transport Controls
@@ -135,7 +136,8 @@ appears.
 
 **First run:** no stream is configured yet, so the tray shows *No stream URL
 configured*. Choose **Set stream URL…** from the tray menu, enter the URL of
-the MP3 or AAC stream you want to play, and playback starts right away. On later
+the MP3 or AAC stream (or a `.pls` playlist pointing at one) you want to play,
+and playback starts right away. On later
 launches Whirr starts playing automatically by default.
 
 - **Left-click** the icon (Windows/macOS) to toggle play/pause.
@@ -176,8 +178,8 @@ automatically within a couple of seconds, no restart needed. Location:
 | Windows | `%APPDATA%\whirr\config\config.toml`                       |
 
 ```toml
-# The http(s) MP3/AAC stream to play. There is no default; set it here or via
-# the "Set stream URL…" tray menu item.
+# The http(s) MP3/AAC stream (or .pls playlist) to play. There is no default;
+# set it here or via the "Set stream URL…" tray menu item.
 stream_url = "https://example.com/stream.mp3"
 # Output volume, 0.0–1.0
 volume = 1.0
