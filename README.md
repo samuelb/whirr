@@ -181,8 +181,8 @@ automatically within a couple of seconds, no restart needed. Location:
 stream_url = "https://example.com/stream.mp3"
 # Output volume, 0.0–1.0
 volume = 1.0
-# Start playing automatically on launch
-autoplay = true
+# Start playing automatically on launch (off by default)
+autoplay = false
 # Kept in sync with the OS "start on login" state
 autostart = false
 ```

@@ -62,7 +62,7 @@ impl Default for Config {
         Self {
             stream_url: None,
             volume: 1.0,
-            autoplay: true,
+            autoplay: false,
             autostart: false,
             notifications: true,
         }
