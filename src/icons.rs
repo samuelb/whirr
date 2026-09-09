@@ -19,7 +19,7 @@ pub fn tray_icon(active: bool) -> Icon {
 
     if !active {
         // Convert to a dimmed grayscale so paused state reads at a glance.
-        for px in rgba.chunks_exact_mut(4) {
+        for px in rgba.as_chunks_mut::<4>().0 {
             let luma = (0.299 * px[0] as f32 + 0.587 * px[1] as f32 + 0.114 * px[2] as f32) as u8;
             let dimmed = (luma as u16 * 5 / 8) as u8;
             px[0] = dimmed;
