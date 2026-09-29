@@ -1,0 +1,33 @@
+# Dependabot version updates (https://docs.github.com/code-security/dependabot).
+#
+# Commit subjects follow Conventional Commits so git-cliff files them under
+# "Miscellaneous" in the release notes: `build(deps): …` for crates and
+# `ci(deps): …` for workflow actions. Minor/patch bumps are grouped into a
+# single weekly PR per ecosystem to keep the noise down; majors stay separate
+# since they are the ones that need a closer look.
+#
+# Not covered: flake.nix (Dependabot has no Nix support) and the
+# samuelb/homebrew-tap reusable workflow (pinned to @main on purpose).
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      cargo-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]
