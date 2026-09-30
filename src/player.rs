@@ -33,13 +33,12 @@ use anyhow::{anyhow, Context, Result};
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use rodio::buffer::SamplesBuffer;
 use rodio::{OutputStream, OutputStreamHandle, Sink};
-use symphonia::core::audio::SampleBuffer;
-use symphonia::core::codecs::DecoderOptions;
+use symphonia::core::codecs::audio::AudioDecoderOptions;
 use symphonia::core::errors::Error as SymError;
-use symphonia::core::formats::FormatOptions;
+use symphonia::core::formats::probe::Hint;
+use symphonia::core::formats::{FormatOptions, TrackType};
 use symphonia::core::io::{MediaSource, MediaSourceStream};
 use symphonia::core::meta::MetadataOptions;
-use symphonia::core::probe::Hint;
 
 use crate::config::{Config, USER_AGENT};
 use crate::icy::IcyReader;
@@ -477,22 +476,25 @@ where
     // themselves, so the same pipeline handles both.
     let hint = Hint::new();
 
-    let probed = symphonia::default::get_probe()
-        .format(
+    let mut format = symphonia::default::get_probe()
+        .probe(
             &hint,
             mss,
-            &FormatOptions::default(),
-            &MetadataOptions::default(),
+            FormatOptions::default(),
+            MetadataOptions::default(),
         )
         .context("probing stream format")?;
-    let mut format = probed.format;
     let track = format
-        .default_track()
-        .cloned()
+        .default_track(TrackType::Audio)
         .context("stream has no audio track")?;
     let track_id = track.id;
+    let codec_params = track
+        .codec_params
+        .as_ref()
+        .and_then(|p| p.audio())
+        .context("audio track has no codec parameters")?;
     let mut decoder = symphonia::default::get_codecs()
-        .make(&track.codec_params, &DecoderOptions::default())
+        .make_audio_decoder(codec_params, &AudioDecoderOptions::default())
         .context("creating decoder")?;
 
     let mut volume_bits = volume.load(Ordering::Relaxed);
@@ -505,22 +507,23 @@ where
         }
 
         let packet = match format.next_packet() {
-            Ok(p) => p,
+            Ok(Some(p)) => p,
+            Ok(None) => return Ok(()), // stream ended
             Err(SymError::IoError(e)) if e.kind() == io::ErrorKind::UnexpectedEof => {
                 return Ok(()); // stream ended
             }
             Err(SymError::ResetRequired) => return Ok(()), // reconnect to re-probe
             Err(e) => return Err(anyhow!("reading packet: {e}")),
         };
-        if packet.track_id() != track_id {
+        if packet.track_id != track_id {
             continue;
         }
         match decoder.decode(&packet) {
             Ok(decoded) => {
-                let spec = *decoded.spec();
-                let channels = spec.channels.count() as u16;
-                let mut sample_buf = SampleBuffer::<f32>::new(decoded.capacity() as u64, spec);
-                sample_buf.copy_interleaved_ref(decoded);
+                let channels = decoded.spec().channels().count() as u16;
+                let rate = decoded.spec().rate();
+                let mut samples = Vec::<f32>::new();
+                decoded.copy_to_vec_interleaved(&mut samples);
 
                 // Back-pressure: don't let the queue grow without bound.
                 while sink.len() > 32 && should_run() {
@@ -529,11 +532,7 @@ where
                 if !should_run() {
                     return Ok(());
                 }
-                sink.append(SamplesBuffer::new(
-                    channels,
-                    spec.rate,
-                    sample_buf.samples().to_vec(),
-                ));
+                sink.append(SamplesBuffer::new(channels, rate, samples));
 
                 if !*played {
                     *played = true;
