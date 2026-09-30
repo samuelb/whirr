@@ -5,7 +5,7 @@
 //! ------
 //! * A single **engine thread** owns the audio output device and processes
 //!   commands ([`Command`]) from the UI. The device is opened lazily on the
-//!   first play and released (the [`OutputStream`] dropped) whenever playback
+//!   first play and released (the [`MixerDeviceSink`] dropped) whenever playback
 //!   stops, so an idle/paused Whirr holds no output stream open — otherwise the
 //!   OS audio server keeps mixing silence into the (built-in-speaker) DSP for as
 //!   long as the app runs, a continuous CPU cost even while nothing plays.
@@ -24,6 +24,7 @@
 //!   Symphonia's `MediaSource` bound without the (non-`Sync`) HTTP response.
 
 use std::io::{self, Read, Seek, SeekFrom};
+use std::num::NonZero;
 use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -32,7 +33,10 @@ use std::time::Duration;
 use anyhow::{anyhow, Context, Result};
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use rodio::buffer::SamplesBuffer;
-use rodio::{OutputStream, OutputStreamHandle, Sink};
+use rodio::mixer::Mixer;
+// Rodio's playback queue; aliased to avoid clashing with our own `Player`.
+use rodio::Player as Sink;
+use rodio::{DeviceSinkBuilder, MixerDeviceSink};
 use symphonia::core::codecs::audio::AudioDecoderOptions;
 use symphonia::core::errors::Error as SymError;
 use symphonia::core::formats::probe::Hint;
@@ -81,7 +85,6 @@ enum Command {
     SetStreamUrl(Option<String>),
     /// Change the output volume; applied to live playback without a restart.
     SetVolume(f32),
-    WorkerFailed(usize),
     Quit,
 }
 
@@ -99,10 +102,9 @@ impl Player {
         E: Fn(PlayerEvent) + Send + Clone + 'static,
     {
         let (cmd_tx, cmd_rx) = unbounded();
-        let engine_cmd_tx = cmd_tx.clone();
         thread::Builder::new()
             .name("audio-engine".into())
-            .spawn(move || engine(config, cmd_rx, engine_cmd_tx, emit))
+            .spawn(move || engine(config, cmd_rx, emit))
             .expect("spawn audio engine");
         Self { cmd_tx }
     }
@@ -131,7 +133,7 @@ impl Player {
 /// the active one?". When it returns false the session must wind down.
 type ShouldRun = Arc<dyn Fn() -> bool + Send + Sync>;
 
-fn engine<E>(mut config: Config, cmd_rx: Receiver<Command>, cmd_tx: Sender<Command>, emit: E)
+fn engine<E>(mut config: Config, cmd_rx: Receiver<Command>, emit: E)
 where
     E: Fn(PlayerEvent) + Send + Clone + 'static,
 {
@@ -143,23 +145,28 @@ where
 
     // The audio device, opened lazily on the first play and dropped whenever
     // playback stops (see the module docs). It is not `Send`, so it stays on
-    // this engine thread; workers build their `Sink` from a cloned handle
-    // (`OutputStreamHandle` *is* `Send`), and dropping the `OutputStream` while
-    // a worker winds down is harmless (its `Sink` just feeds a dead mixer).
-    let mut stream: Option<(OutputStream, OutputStreamHandle)> = None;
+    // this engine thread; workers connect their `Sink` to a cloned `Mixer`
+    // (which *is* `Send`), and dropping the device while a worker winds down
+    // is harmless (its `Sink` just feeds a dead mixer).
+    let mut stream: Option<MixerDeviceSink> = None;
 
     // Begin a playback session: open the device if needed, then spawn a worker
     // tagged with a fresh generation. Returns whether playback started — `false`
     // (with an `Error` status emitted) means the device could not be opened.
     // Takes the config as a parameter (rather than capturing it) so the command
     // loop below can mutate it between starts.
-    let start = |stream: &mut Option<(OutputStream, OutputStreamHandle)>,
+    let start = |stream: &mut Option<MixerDeviceSink>,
                  config: &Config,
                  generation: &Arc<AtomicUsize>|
      -> bool {
         if stream.is_none() {
-            match OutputStream::try_default() {
-                Ok(pair) => *stream = Some(pair),
+            match DeviceSinkBuilder::open_default_sink() {
+                Ok(mut device) => {
+                    // We drop the device on every pause; that is expected, so
+                    // don't let rodio print a warning to stderr each time.
+                    device.log_on_drop(false);
+                    *stream = Some(device);
+                }
                 Err(err) => {
                     log::error!("no audio output device: {err}");
                     emit(PlayerEvent::Status(PlaybackStatus::Error));
@@ -167,22 +174,21 @@ where
                 }
             }
         }
-        let handle = stream.as_ref().expect("stream opened above").1.clone();
+        let mixer = stream
+            .as_ref()
+            .expect("stream opened above")
+            .mixer()
+            .clone();
         let my_gen = generation.fetch_add(1, Ordering::SeqCst) + 1;
         let gen = generation.clone();
         let should_run: ShouldRun = Arc::new(move || gen.load(Ordering::SeqCst) == my_gen);
         let cfg = config.clone();
         let volume = volume.clone();
         let emit = emit.clone();
-        let cmd_tx = cmd_tx.clone();
         emit(PlayerEvent::Status(PlaybackStatus::Buffering));
         thread::Builder::new()
             .name("audio-worker".into())
-            .spawn(move || {
-                if !worker(cfg, handle, volume, should_run, emit) {
-                    let _ = cmd_tx.send(Command::WorkerFailed(my_gen));
-                }
-            })
+            .spawn(move || worker(cfg, &mixer, volume, should_run, emit))
             .expect("spawn audio worker");
         true
     };
@@ -249,17 +255,6 @@ where
                 stop(&generation);
                 break;
             }
-            Command::WorkerFailed(worker_gen) => {
-                if playing && generation.load(Ordering::SeqCst) == worker_gen {
-                    playing = false;
-                    stream = None; // worker gave up; release the audio device
-                    emit(PlayerEvent::Title(None));
-                    // The worker gave up (no audio sink); without this the UI
-                    // would keep showing the last Buffering/Error status as if
-                    // a reconnect were still coming.
-                    emit(PlayerEvent::Status(PlaybackStatus::Paused));
-                }
-            }
             Command::Play | Command::Pause => {} // already in the requested state
         }
     }
@@ -267,24 +262,11 @@ where
 
 /// Per-session worker: owns a [`Sink`] and reconnects with exponential backoff
 /// until its generation is retired.
-fn worker<E>(
-    config: Config,
-    handle: rodio::OutputStreamHandle,
-    volume: Arc<AtomicU32>,
-    should_run: ShouldRun,
-    emit: E,
-) -> bool
+fn worker<E>(config: Config, mixer: &Mixer, volume: Arc<AtomicU32>, should_run: ShouldRun, emit: E)
 where
     E: Fn(PlayerEvent) + Send + Clone + 'static,
 {
-    let sink = match Sink::try_new(&handle) {
-        Ok(s) => s,
-        Err(err) => {
-            log::error!("cannot create audio sink: {err}");
-            emit(PlayerEvent::Status(PlaybackStatus::Error));
-            return false;
-        }
-    };
+    let sink = Sink::connect_new(mixer);
     sink.set_volume(f32::from_bits(volume.load(Ordering::Relaxed)));
 
     let mut backoff = Duration::from_secs(1);
@@ -317,7 +299,6 @@ where
         }
     }
     // Dropping `sink` here stops any queued audio for this session.
-    true
 }
 
 /// Connect once and decode until the stream ends, errors, or the session is
@@ -520,8 +501,12 @@ where
         }
         match decoder.decode(&packet) {
             Ok(decoded) => {
-                let channels = decoded.spec().channels().count() as u16;
-                let rate = decoded.spec().rate();
+                let Some(channels) = NonZero::new(decoded.spec().channels().count() as u16) else {
+                    continue; // no channels: nothing to play
+                };
+                let Some(rate) = NonZero::new(decoded.spec().rate()) else {
+                    continue;
+                };
                 let mut samples = Vec::<f32>::new();
                 decoded.copy_to_vec_interleaved(&mut samples);
 
