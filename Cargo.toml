@@ -25,7 +25,7 @@ symphonia = { version = "0.5", default-features = false, features = ["mp3", "aac
 
 # Tray icon + event loop (cross-platform: Windows, macOS, Linux).
 tray-icon = "0.19"
-tao = "0.30"
+tao = "0.37"
 image = { version = "0.25", default-features = false, features = ["png"] }
 
 # System media controls: MPRIS (Linux) / SMTC (Windows) / MediaRemote (macOS) + media keys.
