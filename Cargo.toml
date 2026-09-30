@@ -34,7 +34,7 @@ souvlaki = { version = "0.7", default-features = false, features = ["use_zbus"] 
 raw-window-handle = "0.6"
 
 # Start-on-login registration across platforms.
-auto-launch = "0.5"
+auto-launch = "0.6"
 
 # Desktop "now playing" notifications on track change.
 # The `z` feature (the crate's default) selects the pure-Rust zbus D-Bus backend
