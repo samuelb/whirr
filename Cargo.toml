@@ -20,7 +20,7 @@ path = "src/main.rs"
 [dependencies]
 # Audio: pure-Rust HTTP streaming + MP3/AAC decode + playback (no gstreamer dependency).
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
-rodio = { version = "0.20", default-features = false }
+rodio = { version = "0.22", default-features = false, features = ["playback"] }
 symphonia = { version = "0.6", default-features = false, features = ["mp3", "aac"] }
 
 # Tray icon + event loop (cross-platform: Windows, macOS, Linux).
