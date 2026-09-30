@@ -15,7 +15,11 @@ fn handle() -> Result<AutoLaunch> {
     builder.set_app_name(APP_DISPLAY_NAME).set_app_path(&exe);
     // On macOS a LaunchAgent plist is friendlier than an AppleScript login item.
     #[cfg(target_os = "macos")]
-    builder.set_use_launch_agent(true);
+    builder.set_macos_launch_mode(auto_launch::MacOSLaunchMode::LaunchAgent);
+    // Register per-user (HKCU) only; the default would write the machine-wide
+    // HKLM Run key whenever the app happens to run elevated.
+    #[cfg(target_os = "windows")]
+    builder.set_windows_enable_mode(auto_launch::WindowsEnableMode::CurrentUser);
 
     builder
         .build()
