@@ -30,7 +30,7 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 
 # System media controls: MPRIS (Linux) / SMTC (Windows) / MediaRemote (macOS) + media keys.
 # `use_zbus` selects the pure-Rust D-Bus backend on Linux so no libdbus build dep is needed.
-souvlaki = { version = "0.7", default-features = false, features = ["use_zbus"] }
+souvlaki = { version = "0.8", default-features = false, features = ["use_zbus"] }
 raw-window-handle = "0.6"
 
 # Start-on-login registration across platforms.
