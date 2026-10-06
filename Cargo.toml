@@ -24,7 +24,7 @@ rodio = { version = "0.22", default-features = false, features = ["playback"] }
 symphonia = { version = "0.6", default-features = false, features = ["mp3", "aac"] }
 
 # Tray icon + event loop (cross-platform: Windows, macOS, Linux).
-tray-icon = "0.25"
+tray-icon = "0.26"
 tao = "0.37"
 image = { version = "0.25", default-features = false, features = ["png"] }
 
