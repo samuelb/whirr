@@ -45,7 +45,7 @@ notify-rust = { version = "4", default-features = false, features = ["z"] }
 # Config, logging, utilities.
 serde = { version = "1", features = ["derive"] }
 toml = "1.1"
-directories = "5"
+directories = "6"
 anyhow = "1"
 log = "0.4"
 env_logger = "0.11"
